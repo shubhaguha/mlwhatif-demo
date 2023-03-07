@@ -1,0 +1,2 @@
+streamlit
+mlwhatif[dev] @ git+https://github.com/stefan-grafberger/mlwhatif.git@9b66ebd
