@@ -26,6 +26,10 @@ st.sidebar.title("Configuration")
 pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()))
 pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
 pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
+if pipeline_filename:
+    with open(pipeline_filename) as f:
+        pipeline_code = f.read()
+    pipeline_num_lines = len(pipeline_code.splitlines())
 
 # What-if Analyses
 analyses = {}
@@ -41,10 +45,10 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
     corruption_percentages = []
     num = st.sidebar.number_input(
-        "Corruption percentages", min_value=0.0, max_value=1.0, step=0.01, key=0)
+        "Corruption percentage", min_value=0.0, max_value=1.0, step=0.01, key=0)
     while num and num > 0:
         corruption_percentages.append(num)
-        num = st.sidebar.number_input("Corruption percentages", min_value=0.0,
+        num = st.sidebar.number_input("Corruption percentage", min_value=0.0,
                                       max_value=1.0, step=0.01, key=len(corruption_percentages))
 
     # also_corrupt_train: bool = False):
@@ -65,19 +69,29 @@ if st.sidebar.checkbox("Permutation Importance"):
     analyses["importance"] = importance
 
 if st.sidebar.checkbox("Operator Impact"):
-    # robust_scaling=True
-    # named_model_variants=None
-    test_selections = st.sidebar.checkbox("Test selections", value=True)
+    # test_transformers=True
+    test_transformers = st.sidebar.checkbox("Test selections", value=True)
+
+    # test_selections=False
+    test_selections = st.sidebar.checkbox("Test selections")
+
+    # restrict_to_linenos: List[int] or None = None
+    line_numbers = []
+    num = st.sidebar.number_input(
+        "Line number", min_value=1, max_value=pipeline_num_lines, step=1, key=0)
+    while num and num > 0:
+        line_numbers.append(num)
+        num = st.sidebar.number_input("Line number", min_value=1, max_value=pipeline_num_lines,
+                                      step=1, key=len(line_numbers))
 
     # __init__
-    preproc = OperatorImpact(test_selections=test_selections)
+    preproc = OperatorImpact(test_transformers=test_transformers, test_selections=test_selections)
     analyses["preproc"] = preproc
 
 if st.sidebar.checkbox("Data Cleaning"):
     # columns_with_error: dict[str or None, ErrorType] or List[Tuple[str, ErrorType]]
     columns_with_error = {}
-    # TODO: Add an option like `None` (but `None` will throw an error here) to be able to handle target column
-    selected_columns = st.sidebar.multiselect("Columns with errors", pipeline_columns)
+    selected_columns = st.sidebar.multiselect("Columns with errors", pipeline_columns + ["_TARGET_"])
     for column in selected_columns:
         columns_with_error[column] = st.sidebar.selectbox(
             column, ErrorType.__members__.values(), format_func=lambda m: m.value)
@@ -106,13 +120,10 @@ with right:
 
 ### === MAIN CONTENT ===
 with left:
-    if pipeline_filename:
-        with open(pipeline_filename) as f:
-            pipeline_code = f.read()
-        with pipeline_code_container:
-            # st.code(pipeline_code)
-            # Check out more themes: https://github.com/okld/streamlit-ace/blob/main/streamlit_ace/__init__.py#L36-L43
-            final_pipeline_code = st_ace(value=pipeline_code, language="python", theme="katzenmilch")
+    with pipeline_code_container:
+        # st.code(pipeline_code)
+        # Check out more themes: https://github.com/okld/streamlit-ace/blob/main/streamlit_ace/__init__.py#L36-L43
+        final_pipeline_code = st_ace(value=pipeline_code, language="python", theme="katzenmilch")
 
 with right:
     if run_button:
