@@ -1,82 +1,105 @@
-from functools import partial
-import os
-
 import streamlit as st
-from sklearn.linear_model import LogisticRegression
+from streamlit_ace import st_ace
 
-from demo.feature_overview.clean_learn import Clean, ErrorType, CleanLearn
-from demo.feature_overview.operator_impact import OperatorImpact
-from example_pipelines.healthcare import custom_monkeypatching
-from mlwhatif import PipelineAnalyzer
-from mlwhatif.utils import get_project_root
+from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
+
+from callbacks import analyze_pipeline, get_report
+from constants import PIPELINE_CONFIG
 
 
-st.set_page_config(page_title="mlwhatif", page_icon="🧐")
+ANALYSIS_RESULT = None
 
-### --- Sidebar ---
+
+st.set_page_config(page_title="mlwhatif", page_icon="🧐", layout="wide")
+st.title("`mlwhatif` demo")
+# with st.echo():
+#     st.__version__
+
+
+### === SIDEBAR / CONFIGURATION ===
 st.sidebar.title("Menu")
 
 # Pipeline
-pipeline = st.sidebar.selectbox("Choose a pipeline", ("healthcare", "reviews", "pipeline3"))
-
-if pipeline == "healthcare":
-    pipeline_filename = os.path.join(str(get_project_root()), "demo", "feature_overview", "healthcare.py")
-elif pipeline == "reviews":
-    pipeline_filename = os.path.join(str(get_project_root()), "demo", "advanced_features", "reviews.py")
+pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()))
+pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
+pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
 
 # What-if Analyses
-selected_analyses = []
+analyses = {}
+if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
+    # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
+    column_to_corruption = {}
+    selected_columns = st.sidebar.multiselect(
+        "Columns to corrupt", pipeline_columns)
+    for column in selected_columns:
+        column_to_corruption[column] = st.sidebar.selectbox(
+            column, CorruptionType.__members__.values(), format_func=lambda m: m.value)
 
-if st.sidebar.checkbox("CleanLearn"):
-    cleanlearn = CleanLearn(column="weight",
-                            error=ErrorType.OUTLIER,
-                            cleanings=[Clean.FILTER, Clean.IMPUTE],
-                            outlier_func=lambda y: (y > 120) | (y < 30),
-                            impute_constant=70)
-    selected_analyses.append(cleanlearn)
+    # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
+    corruption_percentages = []
+    num = st.sidebar.number_input(
+        "Corruption percentages", min_value=0.0, max_value=1.0, step=0.01, key=0)
+    while num and num > 0:
+        corruption_percentages.append(num)
+        num = st.sidebar.number_input("Corruption percentages", min_value=0.0,
+                                      max_value=1.0, step=0.01, key=len(corruption_percentages))
 
-if st.sidebar.checkbox("OperatorImpact"):
-    op_impact = OperatorImpact(robust_scaling=True,
-                               named_model_variants=[('logistic_regression', partial(LogisticRegression))])
-    selected_analyses.append(op_impact)
+    # also_corrupt_train: bool = False):
+    also_corrupt_train = st.sidebar.checkbox("Also corrupt train")
 
-# Buttons
+    # __init__
+    robustness = DataCorruption(column_to_corruption=list(column_to_corruption.items()),
+                                corruption_percentages=corruption_percentages,
+                                also_corrupt_train=also_corrupt_train)
+    analyses["robustness"] = robustness
+
+# Actions
 scan_button = st.sidebar.button("Scan Pipeline")
-estimate_button = st.sidebar.button("Estimate Execution Time", disabled=not scan_button)  # estimate execution time
+estimate_button = st.sidebar.button(
+    "Estimate Execution Time", disabled=not scan_button)  # estimate execution time
 run_button = st.sidebar.button("Run Analyses")
 
-### --- Main content ---
-st.title("`mlwhatif` demo")
 
-if pipeline_filename:
-    st.header("Pipeline Code")
-    with open(pipeline_filename) as f:
-        st.code(f.read())
-        # TODO: Add line numbers
+### === LAYOUT ===
+left, right = st.columns(2)
 
-def analyze_pipeline(pipeline_filename, *_what_if_analyses):
-    builder = PipelineAnalyzer.on_pipeline_from_py_file(pipeline_filename)
+with left:
+    pipeline_code_container = st.expander("Pipeline Code", expanded=True)
+    original_dag_container = st.expander("Original DAG")
 
-    for analysis in _what_if_analyses:
-        builder = builder.add_what_if_analysis(analysis)
+with right:
+    analysis_results_container = st.expander("Analysis Results")
+    optimized_dag_container = st.expander("Optimized DAG")
 
-    builder = builder.add_custom_monkey_patching_module(custom_monkeypatching)
-    analysis_result = builder.execute()
+### === MAIN CONTENT ===
+with left:
+    if pipeline_filename:
+        with open(pipeline_filename) as f:
+            pipeline_code = f.read()
+        with pipeline_code_container:
+            # st.code(pipeline_code)
+            # Check out more themes: https://github.com/okld/streamlit-ace/blob/main/streamlit_ace/__init__.py#L36-L43
+            final_pipeline_code = st_ace(value=pipeline_code, language="python", theme="katzenmilch")
 
-    return analysis_result
+with right:
+    if run_button:
+        with analysis_results_container:
+            with st.spinner():
+                ANALYSIS_RESULT = analyze_pipeline(pipeline_filename, *analyses.values())
+            st.balloons()
 
+            for analysis in analyses.values():
+                report = get_report(ANALYSIS_RESULT, analysis)
+                st.subheader(analysis.__class__.__name__)
+                st.table(report)
 
-def get_report(result, what_if_analysis):
-    report = result.analysis_to_result_reports[what_if_analysis]
-    return report
+    if ANALYSIS_RESULT:
+        with optimized_dag_container:
+            st.write("optimized DAG placeholder")
+            ANALYSIS_RESULT.combined_optimized_dag
 
-
-if run_button:
-    st.header("Analysis Results")
-    st.spinner()
-    result = analyze_pipeline(pipeline_filename, *selected_analyses)
-
-    for analysis in selected_analyses:
-        report = get_report(result, analysis)
-        st.subheader(analysis.__class__.__name__)
-        st.table(report)
+with left:
+    if ANALYSIS_RESULT:
+        with original_dag_container:
+            st.write("original DAG placeholder")
+            ANALYSIS_RESULT.original_dag
