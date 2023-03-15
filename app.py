@@ -2,8 +2,11 @@ import streamlit as st
 from streamlit_ace import st_ace
 
 from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
+from mlwhatif.analysis._permutation_feature_importance import PermutationFeatureImportance
+from mlwhatif.analysis._operator_impact import OperatorImpact
+from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
 
-from callbacks import analyze_pipeline, get_report
+from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2
 from constants import PIPELINE_CONFIG
 
 
@@ -17,7 +20,7 @@ st.title("`mlwhatif` demo")
 
 
 ### === SIDEBAR / CONFIGURATION ===
-st.sidebar.title("Menu")
+st.sidebar.title("Configuration")
 
 # Pipeline
 pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()))
@@ -26,11 +29,11 @@ pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
 
 # What-if Analyses
 analyses = {}
+
 if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
     column_to_corruption = {}
-    selected_columns = st.sidebar.multiselect(
-        "Columns to corrupt", pipeline_columns)
+    selected_columns = st.sidebar.multiselect("Columns to corrupt", pipeline_columns)
     for column in selected_columns:
         column_to_corruption[column] = st.sidebar.selectbox(
             column, CorruptionType.__members__.values(), format_func=lambda m: m.value)
@@ -52,6 +55,36 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
                                 corruption_percentages=corruption_percentages,
                                 also_corrupt_train=also_corrupt_train)
     analyses["robustness"] = robustness
+
+if st.sidebar.checkbox("Permutation Importance"):
+    # restrict_to_columns: Iterable[str] or None = None
+    restrict_to_columns = st.sidebar.multiselect("Restrict to columns", pipeline_columns)
+
+    # __init__
+    importance = PermutationFeatureImportance(restrict_to_columns=restrict_to_columns)
+    analyses["importance"] = importance
+
+if st.sidebar.checkbox("Operator Impact"):
+    # robust_scaling=True
+    # named_model_variants=None
+    test_selections = st.sidebar.checkbox("Test selections", value=True)
+
+    # __init__
+    preproc = OperatorImpact(test_selections=test_selections)
+    analyses["preproc"] = preproc
+
+if st.sidebar.checkbox("Data Cleaning"):
+    # columns_with_error: dict[str or None, ErrorType] or List[Tuple[str, ErrorType]]
+    columns_with_error = {}
+    # TODO: Add an option like `None` (but `None` will throw an error here) to be able to handle target column
+    selected_columns = st.sidebar.multiselect("Columns with errors", pipeline_columns)
+    for column in selected_columns:
+        columns_with_error[column] = st.sidebar.selectbox(
+            column, ErrorType.__members__.values(), format_func=lambda m: m.value)
+
+    # __init__
+    cleanlearn = DataCleaning(columns_with_error=columns_with_error)
+    analyses["cleanlearn"] = cleanlearn
 
 # Actions
 scan_button = st.sidebar.button("Scan Pipeline")
@@ -84,7 +117,7 @@ with left:
 with right:
     if run_button:
         with analysis_results_container:
-            with st.spinner():
+            with st.spinner("Analyzing pipeline..."):
                 ANALYSIS_RESULT = analyze_pipeline(pipeline_filename, *analyses.values())
             st.balloons()
 
@@ -95,11 +128,9 @@ with right:
 
     if ANALYSIS_RESULT:
         with optimized_dag_container:
-            st.write("optimized DAG placeholder")
-            ANALYSIS_RESULT.combined_optimized_dag
+            render_graph2(ANALYSIS_RESULT.combined_optimized_dag)
 
 with left:
     if ANALYSIS_RESULT:
         with original_dag_container:
-            st.write("original DAG placeholder")
-            ANALYSIS_RESULT.original_dag
+            render_graph2(ANALYSIS_RESULT.original_dag)

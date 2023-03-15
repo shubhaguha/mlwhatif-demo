@@ -1,3 +1,6 @@
+numpy==1.19.5
+pyvis==0.3.1
 streamlit
 streamlit-ace
-mlwhatif[dev] @ git+https://github.com/stefan-grafberger/mlwhatif.git@32-intermediate-dags
+# streamlit-agraph
+mlwhatif[dev] @ git+https://github.com/stefan-grafberger/mlwhatif.git@edd1af2
