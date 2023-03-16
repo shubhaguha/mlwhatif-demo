@@ -10,6 +10,7 @@ import streamlit.components.v1 as components
 
 from mlwhatif import PipelineAnalyzer
 from mlwhatif.visualisation._visualisation import get_original_simple_dag
+from streamlit_cytoscapejs import st_cytoscapejs
 
 
 def analyze_pipeline(pipeline_filename, *_what_if_analyses, add_monkey_patching=False):
@@ -59,14 +60,52 @@ def render_graph2(graph: nx.classes.digraph.DiGraph):
 def render_graph3(graph: nx.classes.digraph.DiGraph):
     G = get_original_simple_dag(graph)
 
-    def get_new_node_label(node):
-        label = cleandoc(f"{node}: {nx.get_node_attributes(G, 'operator_name')[node]}")
-        return label
-
-    # noinspection PyTypeChecker
-    G = nx.relabel_nodes(G, get_new_node_label)
-    # pos = graphviz_layout(G, prog='dot')
+    # def get_new_node_label(node):
+    #     label = cleandoc(f"{node}: {nx.get_node_attributes(G, 'operator_name')[node]}")
+    #     return label
     #
+    # # noinspection PyTypeChecker
+    # G = nx.relabel_nodes(G, get_new_node_label)
+    cytoscape_data = nx.cytoscape_data(G)["elements"]
+
+    stylesheet = [{
+        'selector': 'node',
+        'css': {
+            'content': 'data(operator_name)',
+            'text-valign': 'center',
+            'color': 'white',
+            'text-outline-width': 2,
+            'text-outline-color': 'data(fontcolor)',
+            'background-color': 'data(fillcolor)'
+        }
+    },
+        {
+            'selector': ':selected',
+            'css': {
+                'background-color': 'black',
+                'line-color': 'black',
+                'target-arrow-color': 'black',
+                'source-arrow-color': 'black',
+                'text-outline-color': 'black'
+            }
+        },
+        {
+            "selector": "edge",
+            "style": {
+                'curve-style': 'bezier',
+                'target-arrow-shape': 'triangle'
+            }
+        },
+    ]
+    elements = cytoscape_data["nodes"] + cytoscape_data["edges"]
+    print(elements)
+    # cytoscapeobj = ipycytoscape.CytoscapeWidget()
+    # cytoscapeobj.graph.add_graph_from_networkx(plan, directed=True)
+
+    # klay
+    # Z
+
+    clicked_elements = st_cytoscapejs(elements=elements, stylesheet=stylesheet)
     # nt = Network()
     # nt.from_nx(G)
     # nt.show("graph.html")
@@ -81,13 +120,13 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
     # nx.draw(G, pos, with_labels=True)
     # st.pyplot(fig)
 
-    agraph = to_agraph(G)
-    agraph.layout(prog='dot')
-    agraph.draw("graph.dot")
-
-    with open("graph.dot", "r", encoding="utf-8") as dot_file:
-        dot_content = dot_file.read()
-    st.graphviz_chart(dot_content)
+    # agraph = to_agraph(G)
+    # agraph.layout(prog='dot')
+    # agraph.draw("graph.dot")
+    #
+    # with open("graph.dot", "r", encoding="utf-8") as dot_file:
+    #     dot_content = dot_file.read()
+    # st.graphviz_chart(dot_content, use_container_width=True)
 
     # nt = Network()
     # nt.from_DOT(agraph)
