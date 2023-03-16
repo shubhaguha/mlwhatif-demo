@@ -1,6 +1,7 @@
 numpy==1.19.5
+gensim==3.8.3
 pyvis==0.3.1
 streamlit
 streamlit-ace
-mlwhatif[dev] @ git+https://github.com/stefan-grafberger/mlwhatif.git@edd1af2
+mlwhatif[dev] @ git+https://github.com/stefan-grafberger/mlwhatif.git@d79e753087cc736dabe2dafe0b69fc5c3dc4291b
 st-cytoscape@git+https://github.com/stefan-grafberger/st-cytoscape.git@ff5b2dd5fb5941d6a939420f5d4f65955f7b998a

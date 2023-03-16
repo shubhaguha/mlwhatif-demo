@@ -10,12 +10,21 @@ from mlwhatif.analysis._permutation_feature_importance import PermutationFeature
 from mlwhatif.analysis._operator_impact import OperatorImpact
 from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
 
-from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2, render_graph3
+from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2, render_graph3, scan_pipeline, \
+    estimate_pipeline_analysis
 from constants import PIPELINE_CONFIG
-
 
 if 'ANALYSIS_RESULT' not in st.session_state:
     st.session_state['ANALYSIS_RESULT'] = None
+
+if 'DAG_EXTRACTION_RESULT' not in st.session_state:
+    st.session_state['DAG_EXTRACTION_RESULT'] = None
+
+if 'RUNTIME_ORIG' not in st.session_state:
+    st.session_state['RUNTIME_ORIG'] = None
+
+if 'ESTIMATION_RESULT' not in st.session_state:
+    st.session_state['ESTIMATION_RESULT'] = None
 
 if 'analyses' not in st.session_state:
     st.session_state['analyses'] = {}
@@ -37,6 +46,7 @@ if pipeline_filename:
     with open(pipeline_filename) as f:
         pipeline_code = f.read()
     pipeline_num_lines = len(pipeline_code.splitlines())
+    # TODO: When this changes, we need to clear DAG_EXTRACTION_RESULT and ANALYSIS_RESULT
 
 # What-if Analyses
 
@@ -107,11 +117,12 @@ if st.sidebar.checkbox("Data Cleaning"):
     st.session_state.analyses["cleanlearn"] = cleanlearn
 
 # Actions
-scan_button = st.sidebar.button("Scan Pipeline")
+scan_button = st.sidebar.button("Run and Scan Pipeline")
+# TODO: Can we maybe show the pipeline output again? To show that pipelines can be developed within that interface
+# TODO: We can also fake this a bit for the initial video if needed
 estimate_button = st.sidebar.button(
-    "Estimate Execution Time", disabled=not scan_button)  # estimate execution time
-run_button = st.sidebar.button("Run Analyses")
-
+    "Estimate Execution Time", disabled=st.session_state['DAG_EXTRACTION_RESULT'] is None)  # estimate execution time
+run_button = st.sidebar.button("Run Analyses", disabled=st.session_state['DAG_EXTRACTION_RESULT'] is None)
 
 ### === LAYOUT ===
 left, right = st.columns(2)
@@ -119,15 +130,72 @@ left, right = st.columns(2)
 with left:
     pipeline_code_container = st.expander("Pipeline Code", expanded=True)
     original_dag_container = st.expander("Original DAG")
+    with original_dag_container:
+        st.empty()
     intermediate_container_0 = st.expander("Generated Variants")
+    with intermediate_container_0:
+        st.empty()
     intermediate_container_1 = st.expander("Common Subexpression Elimination")
+    with intermediate_container_1:
+        st.empty()
     intermediate_container_2 = st.expander("Filter Removal Push-Up")
+    with intermediate_container_2:
+        st.empty()
     intermediate_container_3 = st.expander("Projection Removal Push-Up")
+    with intermediate_container_3:
+        st.empty()
     intermediate_container_4 = st.expander("Filter Removal Push-Up")
+    with intermediate_container_4:
+        st.empty()
     intermediate_container_5 = st.expander("UDF Split-Reuse")
+    with intermediate_container_5:
+        st.empty()
 with right:
+    estimation_results_container = st.expander("Estimation Results", expanded=True)
+    with estimation_results_container:
+        st.empty()
     analysis_results_container = st.expander("Analysis Results", expanded=True)
+    with analysis_results_container:
+        st.empty()
     optimized_dag_container = st.expander("Optimized DAG")
+    with optimized_dag_container:
+        st.empty()
+
+### === BUTTONS ===
+
+if estimate_button:
+    st.session_state.ANALYSIS_RESULT = None
+    st.session_state.ESTIMATION_RESULT = None
+    with estimation_results_container:
+        with st.spinner("Estimating analysis cost..."):
+            st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
+                                                                            *st.session_state.analyses.values())
+
+if scan_button:
+    st.session_state.ANALYSIS_RESULT = None
+    st.session_state.DAG_EXTRACTION_RESULT = None
+    st.session_state.ESTIMATION_RESULT = None
+    st.session_state.RUNTIME_ORIG = None
+    with analysis_results_container:
+        with st.spinner("Analyzing pipeline..."):
+            runtime_orig, dag_extraction_result = scan_pipeline(pipeline_filename)
+            st.session_state.DAG_EXTRACTION_RESULT = dag_extraction_result
+            st.session_state.RUNTIME_ORIG = runtime_orig
+
+
+if run_button:
+    st.session_state.ANALYSIS_RESULT = None
+    st.session_state.ESTIMATION_RESULT = None
+    with right:
+        with estimation_results_container:
+            with st.spinner("Estimating analysis cost..."):
+                st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
+                                                                                *st.session_state.analyses.values())
+        with analysis_results_container:
+            with st.spinner("Analyzing pipeline..."):
+                st.session_state.ANALYSIS_RESULT = \
+                    analyze_pipeline(st.session_state.DAG_EXTRACTION_RESULT, *st.session_state.analyses.values())
+            st.balloons()
 
 ### === MAIN CONTENT ===
 with left:
@@ -136,45 +204,67 @@ with left:
         # Check out more themes: https://github.com/okld/streamlit-ace/blob/main/streamlit_ace/__init__.py#L36-L43
         final_pipeline_code = st_ace(value=pipeline_code, language="python", theme="katzenmilch")
 
-with right:
-    if run_button:
-        with analysis_results_container:
-            with st.spinner("Analyzing pipeline..."):
-                st.session_state.ANALYSIS_RESULT = \
-                    analyze_pipeline(pipeline_filename, *st.session_state.analyses.values())
-            st.balloons()
+if st.session_state.RUNTIME_ORIG:
+    with right:
+        with estimation_results_container:
+            runtime_orig = st.session_state.RUNTIME_ORIG
+            # TODO: Should we use humanize here?
+            #  from humanize import naturalsize
+            #  naturaldelta or something like that
+            st.markdown(f"Measured runtime of original pipeline is {runtime_orig}ms.")
 
-            for analysis in st.session_state.analyses.values():
-                report = get_report(st.session_state.ANALYSIS_RESULT, analysis)
+if st.session_state.ESTIMATION_RESULT:
+    with right:
+        with estimation_results_container:
+            estimate = st.session_state.ESTIMATION_RESULT
+            # TODO: Should we use humanize here?
+            #  from humanize import naturalsize
+            #  naturaldelta or something like that
+            st.markdown(f"Estimated total runtime is {estimate.runtime_info.what_if_optimized_estimated}ms.")
+            st.markdown(f"Estimated time saved with our multi-query optimization is {estimate.runtime_info.what_if_optimization_saving_estimated}ms.")
 
-                metrics_frame_columns = report.select_dtypes('object')
-                for column in metrics_frame_columns:
-                    if len(report) != 0 and isinstance(report[column].iloc[0], MetricFrame):
-                        # TODO: Better visualisation or remove MetricFrame from healthcare pipeline
-                        report[column] = report.apply(lambda row: str(row[column].by_group), axis=1)
-
-                st.subheader(analysis.__class__.__name__)
-                st.table(report)
 
 if st.session_state.ANALYSIS_RESULT:
+    with analysis_results_container:
+        for analysis in st.session_state.analyses.values():
+            actual_runtime = st.session_state.ANALYSIS_RESULT.runtime_info.what_if_execution
+            st.markdown(f"Measured runtime of what-if analyses is {actual_runtime}ms.")
+
+            report = get_report(st.session_state.ANALYSIS_RESULT, analysis)
+
+            metrics_frame_columns = report.select_dtypes('object')
+            for column in metrics_frame_columns:
+                if len(report) != 0 and isinstance(report[column].iloc[0], MetricFrame):
+                    # TODO: Better visualisation or remove MetricFrame from healthcare pipeline
+                    report[column] = report.apply(lambda row: str(row[column].by_group), axis=1)
+
+            st.subheader(analysis.__class__.__name__)
+            st.table(report)
     with optimized_dag_container:
         combined_plan = get_final_optimized_combined_colored_simple_dag(
             st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])
         cytoscape_data, stylesheet = render_graph3(combined_plan)
         selected = cytoscape(cytoscape_data, stylesheet, key="optimized-plan", layout={"name": "dagre"})
 
-        st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
-        st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
+        # If we want to show detail info, we can do that as well
+        # E.g., we could show code locations again
+        # st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
+        # st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
 
-with left:
-    if st.session_state.ANALYSIS_RESULT:
+
+if st.session_state.DAG_EXTRACTION_RESULT:
+    with left:
         with original_dag_container:
-            original_plan = get_original_simple_dag(st.session_state.ANALYSIS_RESULT.original_dag)
+            original_plan = get_original_simple_dag(st.session_state.DAG_EXTRACTION_RESULT.original_dag)
             cytoscape_data, stylesheet = render_graph3(original_plan)
             selected = cytoscape(cytoscape_data, stylesheet, key="original-plan", layout={"name": "dagre"})
 
-            st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
-            st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
+            # If we want to show detail info, we can do that as well
+            # E.g., we could show code locations again
+            # st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
+            # st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
+if st.session_state.ANALYSIS_RESULT:
+    with left:
         with intermediate_container_0:
             # with_reuse_coloring=False here is important
             colored_simple_dags = get_colored_simple_dags(
@@ -194,35 +284,38 @@ with left:
                 cytoscape_data, stylesheet = render_graph3(what_if_dag)
                 selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-1-cse-{dag_index}",
                                      layout={"name": "dagre"})
-        # FIXME: The optimize dag filter removal is not handled correctly
-        print(st.session_state.ANALYSIS_RESULT.intermediate_stages.keys())
+        # print(st.session_state.ANALYSIS_RESULT.intermediate_stages.keys())
         with intermediate_container_2:
-            colored_simple_dags = get_colored_simple_dags(st.session_state.ANALYSIS_RESULT.intermediate_stages["3-optimize_patches_2_OperatorDeletionFilterPushUp"],
-                                                          with_reuse_coloring=True)
+            colored_simple_dags = get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages['1-optimize_dag_2_OperatorDeletionFilterPushUp'],
+                with_reuse_coloring=True)
             for dag_index, what_if_dag in enumerate(colored_simple_dags):
                 st.markdown(f"Variant {dag_index}")
                 cytoscape_data, stylesheet = render_graph3(what_if_dag)
                 selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-2-filter-remove-{dag_index}",
                                      layout={"name": "dagre"})
         with intermediate_container_3:
-            colored_simple_dags = get_colored_simple_dags(st.session_state.ANALYSIS_RESULT.intermediate_stages["1-optimize_patches_0_SimpleProjectionPushUp"],
-                                                          with_reuse_coloring=True)
+            colored_simple_dags = get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages['2-optimize_patches_0_SimpleProjectionPushUp'],
+                with_reuse_coloring=True)
             for dag_index, what_if_dag in enumerate(colored_simple_dags):
                 st.markdown(f"Variant {dag_index}")
                 cytoscape_data, stylesheet = render_graph3(what_if_dag)
                 selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-3-proj-add-{dag_index}",
                                      layout={"name": "dagre"})
         with intermediate_container_4:
-            colored_simple_dags = get_colored_simple_dags(st.session_state.ANALYSIS_RESULT.intermediate_stages["2-optimize_patches_1_SimpleFilterAdditionPushUp"],
-                                                          with_reuse_coloring=True)
+            colored_simple_dags = get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages['3-optimize_patches_1_SimpleFilterAdditionPushUp'],
+                with_reuse_coloring=True)
             for dag_index, what_if_dag in enumerate(colored_simple_dags):
                 st.markdown(f"Variant {dag_index}")
                 cytoscape_data, stylesheet = render_graph3(what_if_dag)
                 selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-4-filter-add-{dag_index}",
                                      layout={"name": "dagre"})
         with intermediate_container_5:
-            colored_simple_dags = get_colored_simple_dags(st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"],
-                                                          with_reuse_coloring=True)
+            colored_simple_dags = get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages['4-optimize_patches_3_UdfSplitAndReuse'],
+                with_reuse_coloring=True)
             for dag_index, what_if_dag in enumerate(colored_simple_dags):
                 st.markdown(f"Variant {dag_index}")
                 cytoscape_data, stylesheet = render_graph3(what_if_dag)

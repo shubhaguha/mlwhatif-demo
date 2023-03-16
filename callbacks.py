@@ -13,8 +13,8 @@ from mlwhatif.visualisation._visualisation import get_original_simple_dag
 from st_cytoscape import cytoscape
 
 
-def analyze_pipeline(pipeline_filename, *_what_if_analyses, add_monkey_patching=False):
-    builder = PipelineAnalyzer.on_pipeline_from_py_file(pipeline_filename)
+def analyze_pipeline(dag_extraction_result, *_what_if_analyses, add_monkey_patching=False):
+    builder = PipelineAnalyzer.on_previously_extracted_pipeline(dag_extraction_result)
 
     for analysis in _what_if_analyses:
         builder = builder.add_what_if_analysis(analysis)
@@ -29,6 +29,41 @@ def analyze_pipeline(pipeline_filename, *_what_if_analyses, add_monkey_patching=
     analysis_result = builder.execute()
 
     return analysis_result
+
+
+def estimate_pipeline_analysis(dag_extraction_result, *_what_if_analyses, add_monkey_patching=False):
+    builder = PipelineAnalyzer.on_previously_extracted_pipeline(dag_extraction_result)
+
+    for analysis in _what_if_analyses:
+        builder = builder.add_what_if_analysis(analysis)
+
+    builder = builder.set_intermediate_dag_storing(True)
+    builder = builder.add_custom_monkey_patching_modules([custom_monkeypatching])
+
+    if add_monkey_patching:
+        # TODO: add monkey patching only when necessary?
+        pass
+
+    estimation_result = builder.estimate()
+
+    return estimation_result
+
+
+def scan_pipeline(pipeline_filename, add_monkey_patching=False):
+    builder = PipelineAnalyzer.on_pipeline_from_py_file(pipeline_filename)
+
+    builder = builder.set_intermediate_dag_storing(True)
+    builder = builder.add_custom_monkey_patching_modules([custom_monkeypatching])
+
+    if add_monkey_patching:
+        # TODO: add monkey patching only when necessary?
+        pass
+
+    result = builder.execute()
+    runtime_orig = result.runtime_info.original_pipeline_estimated
+    dag_extraction_info = result.dag_extraction_info
+
+    return runtime_orig, dag_extraction_info
 
 
 def get_report(result, what_if_analysis):
