@@ -129,6 +129,9 @@ left, right = st.columns(2)
 
 with left:
     pipeline_code_container = st.expander("Pipeline Code", expanded=True)
+    original_output_container = st.expander("Pipeline Output")
+    with original_output_container:
+        st.empty()
     original_dag_container = st.expander("Original DAG")
     with original_dag_container:
         st.empty()
@@ -176,8 +179,8 @@ if scan_button:
     st.session_state.DAG_EXTRACTION_RESULT = None
     st.session_state.ESTIMATION_RESULT = None
     st.session_state.RUNTIME_ORIG = None
-    with analysis_results_container:
-        with st.spinner("Analyzing pipeline..."):
+    with estimation_results_container:
+        with st.spinner("Running and scanning the pipeline..."):
             runtime_orig, dag_extraction_result = scan_pipeline(pipeline_filename)
             st.session_state.DAG_EXTRACTION_RESULT = dag_extraction_result
             st.session_state.RUNTIME_ORIG = runtime_orig
@@ -254,6 +257,10 @@ if st.session_state.ANALYSIS_RESULT:
 
 if st.session_state.DAG_EXTRACTION_RESULT:
     with left:
+        with original_output_container:
+            st.markdown("The output of the original pipeline")
+            # TODO: This ignores newlines, also this needs some better formatting
+            st.markdown(st.session_state.DAG_EXTRACTION_RESULT.captured_orig_pipeline_stdout)
         with original_dag_container:
             original_plan = get_original_simple_dag(st.session_state.DAG_EXTRACTION_RESULT.original_dag)
             cytoscape_data, stylesheet = render_graph3(original_plan)
