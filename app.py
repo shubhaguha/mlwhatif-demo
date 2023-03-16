@@ -156,7 +156,7 @@ if st.session_state.ANALYSIS_RESULT:
         combined_plan = get_final_optimized_combined_colored_simple_dag(
             st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])
         cytoscape_data, stylesheet = render_graph3(combined_plan)
-        selected = cytoscape(cytoscape_data, stylesheet, key="optimized-plan")
+        selected = cytoscape(cytoscape_data, stylesheet, key="optimized-plan", layout={"name": "dagre"})
 
         st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
         st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
@@ -166,7 +166,7 @@ with left:
         with original_dag_container:
             original_plan = get_original_simple_dag(st.session_state.ANALYSIS_RESULT.original_dag)
             cytoscape_data, stylesheet = render_graph3(original_plan)
-            selected = cytoscape(cytoscape_data, stylesheet, key="original-plan")
+            selected = cytoscape(cytoscape_data, stylesheet, key="original-plan", layout={"name": "dagre"})
 
             st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
             st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))

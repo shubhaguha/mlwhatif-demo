@@ -11,7 +11,6 @@ import streamlit.components.v1 as components
 from mlwhatif import PipelineAnalyzer
 from mlwhatif.visualisation._visualisation import get_original_simple_dag
 from st_cytoscape import cytoscape
-from streamlit_cytoscapejs import st_cytoscapejs
 
 
 def analyze_pipeline(pipeline_filename, *_what_if_analyses, add_monkey_patching=False):
@@ -75,7 +74,7 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
             'text-valign': 'center',
             'color': 'white',
             'text-outline-width': 2,
-            'text-outline-color': 'data(fontcolor)',
+            'text-outline-color': 'black',
             'background-color': 'data(fillcolor)'
         }
     },

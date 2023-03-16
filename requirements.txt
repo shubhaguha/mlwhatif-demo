@@ -2,8 +2,5 @@ numpy==1.19.5
 pyvis==0.3.1
 streamlit
 streamlit-ace
-# streamlit-agraph
 mlwhatif[dev] @ git+https://github.com/stefan-grafberger/mlwhatif.git@edd1af2
-streamlit-cytoscapejs
-ipycytoscape==1.3.3
-st-cytoscape==0.0.5
+st-cytoscape@git+https://github.com/stefan-grafberger/st-cytoscape.git@ff5b2dd5fb5941d6a939420f5d4f65955f7b998a

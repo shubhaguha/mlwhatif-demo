@@ -22,7 +22,7 @@ source venv/bin/activate
 pip install -U pip
 
 # Install dependencies
-pip install -r requirements.txt
+SETUPTOOLS_USE_DISTUTILS=stdlib pip install -r requirements.txt
 
 # Run the web app
 streamlit run app.py
