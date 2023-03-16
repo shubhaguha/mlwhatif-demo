@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
+from example_pipelines.healthcare import custom_monkeypatching
 from pyvis.network import Network
 import streamlit as st
 import streamlit.components.v1 as components
@@ -14,10 +15,11 @@ def analyze_pipeline(pipeline_filename, *_what_if_analyses, add_monkey_patching=
     for analysis in _what_if_analyses:
         builder = builder.add_what_if_analysis(analysis)
 
-    builder.set_intermediate_dag_storing(True)
+    builder = builder.set_intermediate_dag_storing(True)
+    builder = builder.add_custom_monkey_patching_modules([custom_monkeypatching])
 
     if add_monkey_patching:
-        # TODO: add monkey patching
+        # TODO: add monkey patching only when necessary?
         pass
 
     analysis_result = builder.execute()

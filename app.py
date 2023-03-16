@@ -1,4 +1,5 @@
 import streamlit as st
+from fairlearn.metrics import MetricFrame
 from streamlit_ace import st_ace
 
 from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
@@ -60,13 +61,13 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
                                 also_corrupt_train=also_corrupt_train)
     analyses["robustness"] = robustness
 
-if st.sidebar.checkbox("Permutation Importance"):
-    # restrict_to_columns: Iterable[str] or None = None
-    restrict_to_columns = st.sidebar.multiselect("Restrict to columns", pipeline_columns)
-
-    # __init__
-    importance = PermutationFeatureImportance(restrict_to_columns=restrict_to_columns)
-    analyses["importance"] = importance
+# if st.sidebar.checkbox("Permutation Importance"):
+#     # restrict_to_columns: Iterable[str] or None = None
+#     restrict_to_columns = st.sidebar.multiselect("Restrict to columns", pipeline_columns)
+#
+#     # __init__
+#     importance = PermutationFeatureImportance(restrict_to_columns=restrict_to_columns)
+#     analyses["importance"] = importance
 
 if st.sidebar.checkbox("Operator Impact"):
     # test_transformers=True
@@ -76,13 +77,13 @@ if st.sidebar.checkbox("Operator Impact"):
     test_selections = st.sidebar.checkbox("Test selections")
 
     # restrict_to_linenos: List[int] or None = None
-    line_numbers = []
-    num = st.sidebar.number_input(
-        "Line number", min_value=1, max_value=pipeline_num_lines, step=1, key=0)
-    while num and num > 0:
-        line_numbers.append(num)
-        num = st.sidebar.number_input("Line number", min_value=1, max_value=pipeline_num_lines,
-                                      step=1, key=len(line_numbers))
+    # line_numbers = []
+    # num = st.sidebar.number_input(
+    #     "Line number", min_value=1, max_value=pipeline_num_lines, step=1, key=0)
+    # while num and num > 0:
+    #     line_numbers.append(num)
+    #     num = st.sidebar.number_input("Line number", min_value=1, max_value=pipeline_num_lines,
+    #                                   step=1, key=len(line_numbers))
 
     # __init__
     preproc = OperatorImpact(test_transformers=test_transformers, test_selections=test_selections)
@@ -134,6 +135,13 @@ with right:
 
             for analysis in analyses.values():
                 report = get_report(ANALYSIS_RESULT, analysis)
+
+                metrics_frame_columns = report.select_dtypes('object')
+                for column in metrics_frame_columns:
+                    if len(report) != 0 and isinstance(report[column].iloc[0], MetricFrame):
+                        # TODO: Better visualisation or remove MetricFrame from healthcare pipeline
+                        report[column] = report.apply(lambda row: str(row[column].by_group), axis=1)
+
                 st.subheader(analysis.__class__.__name__)
                 st.table(report)
 

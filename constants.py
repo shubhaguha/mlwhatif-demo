@@ -1,15 +1,19 @@
 import os
 
-from mlwhatif.utils import get_project_root
+from utils import get_project_root
 
 
 PIPELINE_CONFIG = {
-    "reviews": {
-        "filename": os.path.join(str(get_project_root()), "demo", "advanced_features", "reviews.py"),
-        "columns": ["total_votes", "star_rating", "vine", "category", "review_body", "review_date"],
-    },
     "healthcare": {
-        "filename": os.path.join(str(get_project_root()), "demo", "feature_overview", "healthcare.py"),
-        "columns": ["smokes", "weight", "gave_consent", "ssn", "notes", "hospital"],
+        "filename": os.path.join(str(get_project_root()), "pipelines", "healthcare.py"),
+        "columns": ['smoker', 'last_name', 'county', 'num_children', 'race', 'income'],
+    },
+    "reviews": {
+        "filename": os.path.join(str(get_project_root()), "pipelines", "reviews.py"),
+        "columns": ["total_votes", "star_rating", "vine", "category"],
+    },
+    "census": {
+        "filename": os.path.join(str(get_project_root()), "pipelines", "census.py"),
+        "columns": ['AGEP', 'WKHP', 'COW', 'SCHL', 'MAR', 'OCCP', 'POBP', 'RELP'],
     },
 }
