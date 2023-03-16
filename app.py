@@ -1,7 +1,7 @@
 import streamlit as st
 from fairlearn.metrics import MetricFrame
 from mlwhatif.visualisation._visualisation import get_final_optimized_combined_colored_simple_dag, \
-    get_original_simple_dag
+    get_original_simple_dag, get_colored_simple_dags
 from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
 
@@ -119,7 +119,12 @@ left, right = st.columns(2)
 with left:
     pipeline_code_container = st.expander("Pipeline Code", expanded=True)
     original_dag_container = st.expander("Original DAG")
-
+    intermediate_container_0 = st.expander("Generated Variants")
+    intermediate_container_1 = st.expander("Common Subexpression Elimination")
+    intermediate_container_2 = st.expander("Filter Removal Push-Up")
+    intermediate_container_3 = st.expander("Projection Removal Push-Up")
+    intermediate_container_4 = st.expander("Filter Removal Push-Up")
+    intermediate_container_5 = st.expander("UDF Split-Reuse")
 with right:
     analysis_results_container = st.expander("Analysis Results", expanded=True)
     optimized_dag_container = st.expander("Optimized DAG")
@@ -170,3 +175,56 @@ with left:
 
             st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
             st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
+        with intermediate_container_0:
+            # with_reuse_coloring=False here is important
+            colored_simple_dags = get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
+                with_reuse_coloring=False)
+            for dag_index, what_if_dag in enumerate(colored_simple_dags):
+                st.markdown(f"Variant {dag_index}")
+                cytoscape_data, stylesheet = render_graph3(what_if_dag)
+                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-0-unopt-variants-{dag_index}",
+                                     layout={"name": "dagre"})
+        with intermediate_container_1:
+            colored_simple_dags = get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
+                with_reuse_coloring=True)
+            for dag_index, what_if_dag in enumerate(colored_simple_dags):
+                st.markdown(f"Variant {dag_index}")
+                cytoscape_data, stylesheet = render_graph3(what_if_dag)
+                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-1-cse-{dag_index}",
+                                     layout={"name": "dagre"})
+        # FIXME: The optimize dag filter removal is not handled correctly
+        print(st.session_state.ANALYSIS_RESULT.intermediate_stages.keys())
+        with intermediate_container_2:
+            colored_simple_dags = get_colored_simple_dags(st.session_state.ANALYSIS_RESULT.intermediate_stages["3-optimize_patches_2_OperatorDeletionFilterPushUp"],
+                                                          with_reuse_coloring=True)
+            for dag_index, what_if_dag in enumerate(colored_simple_dags):
+                st.markdown(f"Variant {dag_index}")
+                cytoscape_data, stylesheet = render_graph3(what_if_dag)
+                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-2-filter-remove-{dag_index}",
+                                     layout={"name": "dagre"})
+        with intermediate_container_3:
+            colored_simple_dags = get_colored_simple_dags(st.session_state.ANALYSIS_RESULT.intermediate_stages["1-optimize_patches_0_SimpleProjectionPushUp"],
+                                                          with_reuse_coloring=True)
+            for dag_index, what_if_dag in enumerate(colored_simple_dags):
+                st.markdown(f"Variant {dag_index}")
+                cytoscape_data, stylesheet = render_graph3(what_if_dag)
+                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-3-proj-add-{dag_index}",
+                                     layout={"name": "dagre"})
+        with intermediate_container_4:
+            colored_simple_dags = get_colored_simple_dags(st.session_state.ANALYSIS_RESULT.intermediate_stages["2-optimize_patches_1_SimpleFilterAdditionPushUp"],
+                                                          with_reuse_coloring=True)
+            for dag_index, what_if_dag in enumerate(colored_simple_dags):
+                st.markdown(f"Variant {dag_index}")
+                cytoscape_data, stylesheet = render_graph3(what_if_dag)
+                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-4-filter-add-{dag_index}",
+                                     layout={"name": "dagre"})
+        with intermediate_container_5:
+            colored_simple_dags = get_colored_simple_dags(st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"],
+                                                          with_reuse_coloring=True)
+            for dag_index, what_if_dag in enumerate(colored_simple_dags):
+                st.markdown(f"Variant {dag_index}")
+                cytoscape_data, stylesheet = render_graph3(what_if_dag)
+                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-5-udf-add-{dag_index}",
+                                     layout={"name": "dagre"})
