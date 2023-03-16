@@ -49,8 +49,8 @@ def estimate_pipeline_analysis(dag_extraction_result, *_what_if_analyses, add_mo
     return estimation_result
 
 
-def scan_pipeline(pipeline_filename, add_monkey_patching=False):
-    builder = PipelineAnalyzer.on_pipeline_from_py_file(pipeline_filename)
+def scan_pipeline(pipeline_source_code, add_monkey_patching=False):
+    builder = PipelineAnalyzer.on_pipeline_from_string(pipeline_source_code)
 
     builder = builder.set_intermediate_dag_storing(True)
     builder = builder.add_custom_monkey_patching_modules([custom_monkeypatching])

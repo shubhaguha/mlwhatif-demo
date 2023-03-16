@@ -14,6 +14,9 @@ from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2
     estimate_pipeline_analysis
 from constants import PIPELINE_CONFIG
 
+if 'PIPELINE_SOURCE_CODE' not in st.session_state:
+    st.session_state['PIPELINE_SOURCE_CODE'] = None
+
 if 'ANALYSIS_RESULT' not in st.session_state:
     st.session_state['ANALYSIS_RESULT'] = None
 
@@ -44,9 +47,12 @@ pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
 pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
 if pipeline_filename:
     with open(pipeline_filename) as f:
-        pipeline_code = f.read()
-    pipeline_num_lines = len(pipeline_code.splitlines())
-    # TODO: When this changes, we need to clear DAG_EXTRACTION_RESULT and ANALYSIS_RESULT
+        st.session_state['PIPELINE_SOURCE_CODE'] = f.read()
+    st.session_state['ANALYSIS_RESULT'] = None
+    st.session_state['DAG_EXTRACTION_RESULT'] = None
+    st.session_state['RUNTIME_ORIG'] = None
+    st.session_state['ESTIMATION_RESULT'] = None
+# pipeline_num_lines = len(st.session_state['PIPELINE_SOURCE_CODE'].splitlines())
 
 # What-if Analyses
 
@@ -166,14 +172,6 @@ with right:
 
 ### === BUTTONS ===
 
-if estimate_button:
-    st.session_state.ANALYSIS_RESULT = None
-    st.session_state.ESTIMATION_RESULT = None
-    with estimation_results_container:
-        with st.spinner("Estimating analysis cost..."):
-            st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
-                                                                            *st.session_state.analyses.values())
-
 if scan_button:
     st.session_state.ANALYSIS_RESULT = None
     st.session_state.DAG_EXTRACTION_RESULT = None
@@ -181,10 +179,17 @@ if scan_button:
     st.session_state.RUNTIME_ORIG = None
     with estimation_results_container:
         with st.spinner("Running and scanning the pipeline..."):
-            runtime_orig, dag_extraction_result = scan_pipeline(pipeline_filename)
+            runtime_orig, dag_extraction_result = scan_pipeline(st.session_state.PIPELINE_SOURCE_CODE)
             st.session_state.DAG_EXTRACTION_RESULT = dag_extraction_result
             st.session_state.RUNTIME_ORIG = runtime_orig
 
+if estimate_button:
+    st.session_state.ANALYSIS_RESULT = None
+    st.session_state.ESTIMATION_RESULT = None
+    with estimation_results_container:
+        with st.spinner("Estimating analysis cost..."):
+            st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
+                                                                            *st.session_state.analyses.values())
 
 if run_button:
     st.session_state.ANALYSIS_RESULT = None
@@ -205,7 +210,9 @@ with left:
     with pipeline_code_container:
         # st.code(pipeline_code)
         # Check out more themes: https://github.com/okld/streamlit-ace/blob/main/streamlit_ace/__init__.py#L36-L43
-        final_pipeline_code = st_ace(value=pipeline_code, language="python", theme="katzenmilch")
+        st.session_state['PIPELINE_SOURCE_CODE'] = st_ace(value=st.session_state['PIPELINE_SOURCE_CODE'],
+                                                          language="python",
+                                                          theme="katzenmilch")
 
 if st.session_state.RUNTIME_ORIG:
     with right:
@@ -224,8 +231,8 @@ if st.session_state.ESTIMATION_RESULT:
             #  from humanize import naturalsize
             #  naturaldelta or something like that
             st.markdown(f"Estimated total runtime is {estimate.runtime_info.what_if_optimized_estimated}ms.")
-            st.markdown(f"Estimated time saved with our multi-query optimization is {estimate.runtime_info.what_if_optimization_saving_estimated}ms.")
-
+            st.markdown(
+                f"Estimated time saved with our multi-query optimization is {estimate.runtime_info.what_if_optimization_saving_estimated}ms.")
 
 if st.session_state.ANALYSIS_RESULT:
     with analysis_results_container:
@@ -253,7 +260,6 @@ if st.session_state.ANALYSIS_RESULT:
         # E.g., we could show code locations again
         # st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
         # st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
-
 
 if st.session_state.DAG_EXTRACTION_RESULT:
     with left:
