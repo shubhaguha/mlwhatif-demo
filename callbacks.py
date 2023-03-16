@@ -1,6 +1,9 @@
+from inspect import cleandoc
+
 import matplotlib.pyplot as plt
 import networkx as nx
 from example_pipelines.healthcare import custom_monkeypatching
+from networkx.drawing.nx_agraph import to_agraph, graphviz_layout
 from pyvis.network import Network
 import streamlit as st
 import streamlit.components.v1 as components
@@ -52,3 +55,51 @@ def render_graph2(graph: nx.classes.digraph.DiGraph):
         source_code = html_file.read() 
     # components.html(source_code, height=1200, width=1000)
     components.html(source_code, height=600)
+
+def render_graph3(graph: nx.classes.digraph.DiGraph):
+    G = get_original_simple_dag(graph)
+
+    def get_new_node_label(node):
+        label = cleandoc(f"{node}: {nx.get_node_attributes(G, 'operator_name')[node]}")
+        return label
+
+    # noinspection PyTypeChecker
+    G = nx.relabel_nodes(G, get_new_node_label)
+    # pos = graphviz_layout(G, prog='dot')
+    #
+    # nt = Network()
+    # nt.from_nx(G)
+    # nt.show("graph.html")
+    #
+    # with open("graph.html", "r", encoding="utf-8") as html_file:
+    #     source_code = html_file.read()
+    #     # components.html(source_code, height=1200, width=1000)
+    # components.html(source_code, height=600)
+
+
+    # fig, _ = plt.subplots()
+    # nx.draw(G, pos, with_labels=True)
+    # st.pyplot(fig)
+
+    agraph = to_agraph(G)
+    agraph.layout(prog='dot')
+    agraph.draw("graph.dot")
+
+    with open("graph.dot", "r", encoding="utf-8") as dot_file:
+        dot_content = dot_file.read()
+    st.graphviz_chart(dot_content)
+
+    # nt = Network()
+    # nt.from_DOT(agraph)
+    # nt.show("graph.html")
+    #
+    # with open("graph.html", "r", encoding="utf-8") as html_file:
+    #     source_code = html_file.read()
+    #     # components.html(source_code, height=1200, width=1000)
+    # components.html(source_code, height=600)
+
+    # # Now we need to somehow visualize this
+    # agraph.draw("graph.html")
+    # with open("graph.html", "r", encoding="utf-8") as html_file:
+    #     source_code = html_file.read()
+    # components.html(source_code, height=600)

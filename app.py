@@ -7,7 +7,7 @@ from mlwhatif.analysis._permutation_feature_importance import PermutationFeature
 from mlwhatif.analysis._operator_impact import OperatorImpact
 from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
 
-from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2
+from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2, render_graph3
 from constants import PIPELINE_CONFIG
 
 
@@ -147,9 +147,9 @@ with right:
 
     if ANALYSIS_RESULT:
         with optimized_dag_container:
-            render_graph2(ANALYSIS_RESULT.combined_optimized_dag)
+            render_graph3(ANALYSIS_RESULT.combined_optimized_dag)
 
 with left:
     if ANALYSIS_RESULT:
         with original_dag_container:
-            render_graph2(ANALYSIS_RESULT.original_dag)
+            render_graph3(ANALYSIS_RESULT.original_dag)
