@@ -10,6 +10,7 @@ import streamlit.components.v1 as components
 
 from mlwhatif import PipelineAnalyzer
 from mlwhatif.visualisation._visualisation import get_original_simple_dag
+from st_cytoscape import cytoscape
 from streamlit_cytoscapejs import st_cytoscapejs
 
 
@@ -58,7 +59,6 @@ def render_graph2(graph: nx.classes.digraph.DiGraph):
     components.html(source_code, height=600)
 
 def render_graph3(graph: nx.classes.digraph.DiGraph):
-    G = get_original_simple_dag(graph)
 
     # def get_new_node_label(node):
     #     label = cleandoc(f"{node}: {nx.get_node_attributes(G, 'operator_name')[node]}")
@@ -66,7 +66,7 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
     #
     # # noinspection PyTypeChecker
     # G = nx.relabel_nodes(G, get_new_node_label)
-    cytoscape_data = nx.cytoscape_data(G)["elements"]
+    cytoscape_data = nx.cytoscape_data(graph)["elements"]
 
     stylesheet = [{
         'selector': 'node',
@@ -97,15 +97,12 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
             }
         },
     ]
-    elements = cytoscape_data["nodes"] + cytoscape_data["edges"]
-    print(elements)
+    # elements = cytoscape_data["nodes"] + cytoscape_data["edges"]
+    # print(elements)
     # cytoscapeobj = ipycytoscape.CytoscapeWidget()
     # cytoscapeobj.graph.add_graph_from_networkx(plan, directed=True)
 
-    # klay
-    # Z
-
-    clicked_elements = st_cytoscapejs(elements=elements, stylesheet=stylesheet)
+    return cytoscape_data, stylesheet
     # nt = Network()
     # nt.from_nx(G)
     # nt.show("graph.html")

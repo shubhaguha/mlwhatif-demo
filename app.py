@@ -1,5 +1,8 @@
 import streamlit as st
 from fairlearn.metrics import MetricFrame
+from mlwhatif.visualisation._visualisation import get_final_optimized_combined_colored_simple_dag, \
+    get_original_simple_dag
+from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
 
 from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
@@ -11,8 +14,11 @@ from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2
 from constants import PIPELINE_CONFIG
 
 
-ANALYSIS_RESULT = None
+if 'ANALYSIS_RESULT' not in st.session_state:
+    st.session_state['ANALYSIS_RESULT'] = None
 
+if 'analyses' not in st.session_state:
+    st.session_state['analyses'] = {}
 
 st.set_page_config(page_title="mlwhatif", page_icon="🧐", layout="wide")
 st.title("`mlwhatif` demo")
@@ -33,7 +39,6 @@ if pipeline_filename:
     pipeline_num_lines = len(pipeline_code.splitlines())
 
 # What-if Analyses
-analyses = {}
 
 if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
@@ -59,7 +64,7 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
     robustness = DataCorruption(column_to_corruption=list(column_to_corruption.items()),
                                 corruption_percentages=corruption_percentages,
                                 also_corrupt_train=also_corrupt_train)
-    analyses["robustness"] = robustness
+    st.session_state.analyses["robustness"] = robustness
 
 # if st.sidebar.checkbox("Permutation Importance"):
 #     # restrict_to_columns: Iterable[str] or None = None
@@ -87,7 +92,7 @@ if st.sidebar.checkbox("Operator Impact"):
 
     # __init__
     preproc = OperatorImpact(test_transformers=test_transformers, test_selections=test_selections)
-    analyses["preproc"] = preproc
+    st.session_state.analyses["preproc"] = preproc
 
 if st.sidebar.checkbox("Data Cleaning"):
     # columns_with_error: dict[str or None, ErrorType] or List[Tuple[str, ErrorType]]
@@ -99,7 +104,7 @@ if st.sidebar.checkbox("Data Cleaning"):
 
     # __init__
     cleanlearn = DataCleaning(columns_with_error=columns_with_error)
-    analyses["cleanlearn"] = cleanlearn
+    st.session_state.analyses["cleanlearn"] = cleanlearn
 
 # Actions
 scan_button = st.sidebar.button("Scan Pipeline")
@@ -116,7 +121,7 @@ with left:
     original_dag_container = st.expander("Original DAG")
 
 with right:
-    analysis_results_container = st.expander("Analysis Results")
+    analysis_results_container = st.expander("Analysis Results", expanded=True)
     optimized_dag_container = st.expander("Optimized DAG")
 
 ### === MAIN CONTENT ===
@@ -130,11 +135,12 @@ with right:
     if run_button:
         with analysis_results_container:
             with st.spinner("Analyzing pipeline..."):
-                ANALYSIS_RESULT = analyze_pipeline(pipeline_filename, *analyses.values())
+                st.session_state.ANALYSIS_RESULT = \
+                    analyze_pipeline(pipeline_filename, *st.session_state.analyses.values())
             st.balloons()
 
-            for analysis in analyses.values():
-                report = get_report(ANALYSIS_RESULT, analysis)
+            for analysis in st.session_state.analyses.values():
+                report = get_report(st.session_state.ANALYSIS_RESULT, analysis)
 
                 metrics_frame_columns = report.select_dtypes('object')
                 for column in metrics_frame_columns:
@@ -145,11 +151,22 @@ with right:
                 st.subheader(analysis.__class__.__name__)
                 st.table(report)
 
-    if ANALYSIS_RESULT:
-        with optimized_dag_container:
-            render_graph3(ANALYSIS_RESULT.combined_optimized_dag)
+if st.session_state.ANALYSIS_RESULT:
+    with optimized_dag_container:
+        combined_plan = get_final_optimized_combined_colored_simple_dag(
+            st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])
+        cytoscape_data, stylesheet = render_graph3(combined_plan)
+        selected = cytoscape(cytoscape_data, stylesheet, key="optimized-plan")
+
+        st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
+        st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
 
 with left:
-    if ANALYSIS_RESULT:
+    if st.session_state.ANALYSIS_RESULT:
         with original_dag_container:
-            render_graph3(ANALYSIS_RESULT.original_dag)
+            original_plan = get_original_simple_dag(st.session_state.ANALYSIS_RESULT.original_dag)
+            cytoscape_data, stylesheet = render_graph3(original_plan)
+            selected = cytoscape(cytoscape_data, stylesheet, key="original-plan")
+
+            st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
+            st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
