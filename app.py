@@ -1,5 +1,7 @@
+import pandas
 from fairlearn.metrics import MetricFrame
 import streamlit as st
+from mlwhatif.execution._patches import AppendNodeAfterOperator, DataProjection
 from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
 
@@ -13,7 +15,6 @@ from mlwhatif.visualisation._visualisation import get_final_optimized_combined_c
 from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2, render_graph3, scan_pipeline, \
     estimate_pipeline_analysis
 from constants import PIPELINE_CONFIG
-
 
 if 'PIPELINE_SOURCE_CODE_PREV_RUN' not in st.session_state:
     st.session_state['PIPELINE_SOURCE_CODE_PREV_RUN'] = None
@@ -70,7 +71,7 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
             column, CorruptionType.__members__.values(), format_func=lambda m: m.value)
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
-    corruption_percentages = st.sidebar.multiselect("Corruption percentages", list(range(0,100,10)))
+    corruption_percentages = st.sidebar.multiselect("Corruption percentages", list(range(0, 100, 10)))
     # corruption_percentages = []
     # num = st.sidebar.number_input(
     #     "Corruption percentage", min_value=0.0, max_value=1.0, step=0.01, key=0)
@@ -84,7 +85,7 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
 
     # __init__
     robustness = DataCorruption(column_to_corruption=list(column_to_corruption.items()),
-                                corruption_percentages=(p/100. for p in corruption_percentages),
+                                corruption_percentages=(p / 100. for p in corruption_percentages),
                                 also_corrupt_train=also_corrupt_train)
     st.session_state.analyses["robustness"] = robustness
 
@@ -136,23 +137,26 @@ with left:
     original_dag_container = st.expander("Original DAG")
     with original_dag_container:
         st.empty()
-    intermediate_container_0 = st.expander("Generated Variants")
+    intermediate_container_0 = st.expander("Generated Patches")
     with intermediate_container_0:
         st.empty()
-    intermediate_container_1 = st.expander("Common Subexpression Elimination")
+    intermediate_container_1 = st.expander("Generated Variants")
     with intermediate_container_1:
         st.empty()
-    intermediate_container_2 = st.expander("Filter Removal Push-Up")
+    intermediate_container_2 = st.expander("Common Subexpression Elimination")
     with intermediate_container_2:
         st.empty()
-    intermediate_container_3 = st.expander("Projection Removal Push-Up")
+    intermediate_container_3 = st.expander("Filter Removal Push-Up")
     with intermediate_container_3:
         st.empty()
-    intermediate_container_4 = st.expander("Filter Removal Push-Up")
+    intermediate_container_4 = st.expander("Projection Push-Up")
     with intermediate_container_4:
         st.empty()
-    intermediate_container_5 = st.expander("UDF Split-Reuse")
+    intermediate_container_5 = st.expander("Filter Addition Push-Up")
     with intermediate_container_5:
+        st.empty()
+    intermediate_container_6 = st.expander("UDF Split-Reuse")
+    with intermediate_container_6:
         st.empty()
 with right:
     results_container = st.expander("Results", expanded=True)
@@ -200,9 +204,9 @@ with pipeline_code_container:
     # st.code(pipeline_code)
     # Check out more themes: https://github.com/okld/streamlit-ace/blob/main/streamlit_ace/__init__.py#L36-L43
     st.session_state['PIPELINE_SOURCE_CODE'] = st_ace(value=st.session_state['PIPELINE_SOURCE_CODE'],
-                                                        language="python",
-                                                        theme="katzenmilch",
-                                                        auto_update=True)
+                                                      language="python",
+                                                      theme="katzenmilch",
+                                                      auto_update=True)
     if st.session_state.DAG_EXTRACTION_RESULT:
         st.code(st.session_state.DAG_EXTRACTION_RESULT.captured_orig_pipeline_stdout)
 
@@ -221,7 +225,7 @@ with results_container:
         #  naturaldelta or something like that
         st.write(f"Estimated total runtime is {estimate.runtime_info.what_if_optimized_estimated:.2f} ms.")
         st.write("Estimated time saved with our multi-query optimization is "
-                    f"{estimate.runtime_info.what_if_optimization_saving_estimated:.2f} ms.")
+                 f"{estimate.runtime_info.what_if_optimization_saving_estimated:.2f} ms.")
 
     if st.session_state.ANALYSIS_RESULT:
         for analysis in st.session_state.analyses.values():
@@ -266,6 +270,25 @@ with original_dag_container:
 if st.session_state.ANALYSIS_RESULT:
     with intermediate_container_0:
         # with_reuse_coloring=False here is important
+        for variant_index, patches in enumerate(st.session_state.ANALYSIS_RESULT.what_if_patches):
+            st.markdown(f"Variant {variant_index}")
+            patch_names = []
+            patch_analyses = []
+            patch_descriptions = []
+            for patch in patches:
+                st.write(str(patch))
+                if type(patch) != AppendNodeAfterOperator:
+                    patch_names.append(type(patch).__name__)
+                    patch_analyses.append(type(patch.analysis).__name__)
+                    if type(patch) == DataProjection:
+                        patch_descriptions.append(patch.projection_operator.details.description)
+                    else:
+                        patch_descriptions.append("")
+            variant_df = pandas.DataFrame({'Patch Type': patch_names, 'Analysis': patch_analyses,
+                                           'Description': patch_descriptions})
+            st.table(variant_df)
+    with intermediate_container_1:
+        # with_reuse_coloring=False here is important
         colored_simple_dags = get_colored_simple_dags(
             st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
             with_reuse_coloring=False)
@@ -273,8 +296,8 @@ if st.session_state.ANALYSIS_RESULT:
             st.markdown(f"Variant {dag_index}")
             cytoscape_data, stylesheet = render_graph3(what_if_dag)
             selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-0-unopt-variants-{dag_index}",
-                                    layout={"name": "dagre"})
-    with intermediate_container_1:
+                                 layout={"name": "dagre"})
+    with intermediate_container_2:
         colored_simple_dags = get_colored_simple_dags(
             st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
             with_reuse_coloring=True)
@@ -282,9 +305,9 @@ if st.session_state.ANALYSIS_RESULT:
             st.markdown(f"Variant {dag_index}")
             cytoscape_data, stylesheet = render_graph3(what_if_dag)
             selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-1-cse-{dag_index}",
-                                    layout={"name": "dagre"})
+                                 layout={"name": "dagre"})
     # print(st.session_state.ANALYSIS_RESULT.intermediate_stages.keys())
-    with intermediate_container_2:
+    with intermediate_container_3:
         colored_simple_dags = get_colored_simple_dags(
             st.session_state.ANALYSIS_RESULT.intermediate_stages['1-optimize_dag_2_OperatorDeletionFilterPushUp'],
             with_reuse_coloring=True)
@@ -292,8 +315,8 @@ if st.session_state.ANALYSIS_RESULT:
             st.markdown(f"Variant {dag_index}")
             cytoscape_data, stylesheet = render_graph3(what_if_dag)
             selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-2-filter-remove-{dag_index}",
-                                    layout={"name": "dagre"})
-    with intermediate_container_3:
+                                 layout={"name": "dagre"})
+    with intermediate_container_4:
         colored_simple_dags = get_colored_simple_dags(
             st.session_state.ANALYSIS_RESULT.intermediate_stages['2-optimize_patches_0_SimpleProjectionPushUp'],
             with_reuse_coloring=True)
@@ -301,8 +324,8 @@ if st.session_state.ANALYSIS_RESULT:
             st.markdown(f"Variant {dag_index}")
             cytoscape_data, stylesheet = render_graph3(what_if_dag)
             selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-3-proj-add-{dag_index}",
-                                    layout={"name": "dagre"})
-    with intermediate_container_4:
+                                 layout={"name": "dagre"})
+    with intermediate_container_5:
         colored_simple_dags = get_colored_simple_dags(
             st.session_state.ANALYSIS_RESULT.intermediate_stages['3-optimize_patches_1_SimpleFilterAdditionPushUp'],
             with_reuse_coloring=True)
@@ -310,8 +333,8 @@ if st.session_state.ANALYSIS_RESULT:
             st.markdown(f"Variant {dag_index}")
             cytoscape_data, stylesheet = render_graph3(what_if_dag)
             selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-4-filter-add-{dag_index}",
-                                    layout={"name": "dagre"})
-    with intermediate_container_5:
+                                 layout={"name": "dagre"})
+    with intermediate_container_6:
         colored_simple_dags = get_colored_simple_dags(
             st.session_state.ANALYSIS_RESULT.intermediate_stages['4-optimize_patches_3_UdfSplitAndReuse'],
             with_reuse_coloring=True)
@@ -319,7 +342,7 @@ if st.session_state.ANALYSIS_RESULT:
             st.markdown(f"Variant {dag_index}")
             cytoscape_data, stylesheet = render_graph3(what_if_dag)
             selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-5-udf-add-{dag_index}",
-                                    layout={"name": "dagre"})
+                                 layout={"name": "dagre"})
 
 # outside of columns
 # DAGs of two variants side by side
