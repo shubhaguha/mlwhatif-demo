@@ -212,7 +212,8 @@ with left:
         # Check out more themes: https://github.com/okld/streamlit-ace/blob/main/streamlit_ace/__init__.py#L36-L43
         st.session_state['PIPELINE_SOURCE_CODE'] = st_ace(value=st.session_state['PIPELINE_SOURCE_CODE'],
                                                           language="python",
-                                                          theme="katzenmilch")
+                                                          theme="katzenmilch",
+                                                          auto_update=True)
 
 if st.session_state.RUNTIME_ORIG:
     with right:
