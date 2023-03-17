@@ -45,7 +45,7 @@ st.sidebar.title("Configuration")
 pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()))
 pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
 pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
-if pipeline_filename:
+if st.session_state.PIPELINE_SOURCE_CODE is None:
     with open(pipeline_filename) as f:
         st.session_state['PIPELINE_SOURCE_CODE'] = f.read()
     st.session_state['ANALYSIS_RESULT'] = None
