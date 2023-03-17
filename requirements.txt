@@ -4,4 +4,4 @@ pyvis==0.3.1
 streamlit
 streamlit-ace
 mlwhatif[dev] @ git+https://github.com/stefan-grafberger/mlwhatif.git@65e7bbd58f668eb23108815fd70c93d5484f47d4
-st-cytoscape@git+https://github.com/stefan-grafberger/st-cytoscape.git@ff5b2dd5fb5941d6a939420f5d4f65955f7b998a
+st-cytoscape @ git+https://github.com/stefan-grafberger/st-cytoscape.git@ff5b2dd5fb5941d6a939420f5d4f65955f7b998a
