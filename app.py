@@ -84,7 +84,7 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
 
     # __init__
     robustness = DataCorruption(column_to_corruption=list(column_to_corruption.items()),
-                                corruption_percentages=(p / 100. for p in corruption_percentages),
+                                corruption_percentages=[p / 100. for p in corruption_percentages],
                                 also_corrupt_train=also_corrupt_train)
     st.session_state.analyses["robustness"] = robustness
 
