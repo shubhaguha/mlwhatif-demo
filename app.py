@@ -180,15 +180,14 @@ if estimate_button:
         st.session_state.ANALYSIS_RESULT = None
 
 if run_button:
-    with right:
-        with results_container:
-            with st.spinner("Estimating analysis cost..."):
-                st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
-                                                                                *st.session_state.analyses.values())
-            with st.spinner("Analyzing pipeline..."):
-                st.session_state.ANALYSIS_RESULT = \
-                    analyze_pipeline(st.session_state.DAG_EXTRACTION_RESULT, *st.session_state.analyses.values())
-            st.balloons()
+    with results_container:
+        with st.spinner("Estimating analysis cost..."):
+            st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
+                                                                            *st.session_state.analyses.values())
+        with st.spinner("Analyzing pipeline..."):
+            st.session_state.ANALYSIS_RESULT = \
+                analyze_pipeline(st.session_state.DAG_EXTRACTION_RESULT, *st.session_state.analyses.values())
+        st.balloons()
 
 ### === MAIN CONTENT ===
 with pipeline_code_container:
