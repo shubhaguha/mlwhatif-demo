@@ -1,7 +1,7 @@
 import pandas
 from fairlearn.metrics import MetricFrame
 import streamlit as st
-from mlwhatif.execution._patches import AppendNodeAfterOperator, DataProjection
+from mlwhatif.execution._patches import AppendNodeAfterOperator, DataProjection, OperatorReplacement
 from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
 
@@ -266,14 +266,18 @@ if st.session_state.ANALYSIS_RESULT:
             patch_analyses = []
             patch_descriptions = []
             for patch in patches:
-                st.write(str(patch))
                 if type(patch) != AppendNodeAfterOperator:
                     patch_names.append(type(patch).__name__)
                     patch_analyses.append(type(patch.analysis).__name__)
                     if type(patch) == DataProjection:
                         patch_descriptions.append(patch.projection_operator.details.description)
+                    elif type(patch) == OperatorReplacement:
+                        description = f"Replace '{patch.operator_to_replace.details.description}' with " \
+                                      f"'{patch.replacement_operator.details.description}'"
+                        patch_descriptions.append(description)
                     else:
                         patch_descriptions.append("")
+
             variant_df = pandas.DataFrame({'Patch Type': patch_names, 'Analysis': patch_analyses,
                                            'Description': patch_descriptions})
             st.table(variant_df)
