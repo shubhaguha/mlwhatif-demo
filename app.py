@@ -14,6 +14,9 @@ from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2
     estimate_pipeline_analysis
 from constants import PIPELINE_CONFIG
 
+if 'PIPELINE_SOURCE_CODE_PREV_RUN' not in st.session_state:
+    st.session_state['PIPELINE_SOURCE_CODE_PREV_RUN'] = None
+
 if 'PIPELINE_SOURCE_CODE' not in st.session_state:
     st.session_state['PIPELINE_SOURCE_CODE'] = ''
 
@@ -122,14 +125,6 @@ if st.sidebar.checkbox("Data Cleaning"):
     cleanlearn = DataCleaning(columns_with_error=columns_with_error)
     st.session_state.analyses["cleanlearn"] = cleanlearn
 
-# Actions
-scan_button = st.sidebar.button("Run and Scan Pipeline")
-# TODO: Can we maybe show the pipeline output again? To show that pipelines can be developed within that interface
-# TODO: We can also fake this a bit for the initial video if needed
-estimate_button = st.sidebar.button(
-    "Estimate Execution Time", disabled=st.session_state['DAG_EXTRACTION_RESULT'] is None)  # estimate execution time
-run_button = st.sidebar.button("Run Analyses", disabled=st.session_state['DAG_EXTRACTION_RESULT'] is None)
-
 ### === LAYOUT ===
 left, right = st.columns(2)
 
@@ -171,6 +166,10 @@ with right:
         st.empty()
 
 ### === BUTTONS ===
+code_has_changed = st.session_state.PIPELINE_SOURCE_CODE != st.session_state.PIPELINE_SOURCE_CODE_PREV_RUN
+scan_button = st.sidebar.button("Run and Scan Pipeline", disabled=not code_has_changed)
+estimate_button = st.sidebar.button("Estimate Execution Time", disabled=code_has_changed)
+run_button = st.sidebar.button("Run Analyses", disabled=code_has_changed)
 
 if scan_button:
     st.session_state.ANALYSIS_RESULT = None
@@ -182,6 +181,8 @@ if scan_button:
             runtime_orig, dag_extraction_result = scan_pipeline(st.session_state.PIPELINE_SOURCE_CODE)
             st.session_state.DAG_EXTRACTION_RESULT = dag_extraction_result
             st.session_state.RUNTIME_ORIG = runtime_orig
+            st.session_state.PIPELINE_SOURCE_CODE_PREV_RUN = st.session_state.PIPELINE_SOURCE_CODE
+            st.experimental_rerun()
 
 if estimate_button:
     st.session_state.ANALYSIS_RESULT = None
