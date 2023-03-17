@@ -1,7 +1,5 @@
-import streamlit as st
 from fairlearn.metrics import MetricFrame
-from mlwhatif.visualisation._visualisation import get_final_optimized_combined_colored_simple_dag, \
-    get_original_simple_dag, get_colored_simple_dags
+import streamlit as st
 from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
 
@@ -9,10 +7,13 @@ from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
 from mlwhatif.analysis._permutation_feature_importance import PermutationFeatureImportance
 from mlwhatif.analysis._operator_impact import OperatorImpact
 from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
+from mlwhatif.visualisation._visualisation import get_final_optimized_combined_colored_simple_dag, \
+    get_original_simple_dag, get_colored_simple_dags
 
 from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2, render_graph3, scan_pipeline, \
     estimate_pipeline_analysis
 from constants import PIPELINE_CONFIG
+
 
 if 'PIPELINE_SOURCE_CODE_PREV_RUN' not in st.session_state:
     st.session_state['PIPELINE_SOURCE_CODE_PREV_RUN'] = None
@@ -56,9 +57,10 @@ if st.sidebar.button("Load source code"):
     st.session_state['RUNTIME_ORIG'] = None
     st.session_state['ESTIMATION_RESULT'] = None
 # pipeline_num_lines = len(st.session_state['PIPELINE_SOURCE_CODE'].splitlines())
+code_has_changed = st.session_state.PIPELINE_SOURCE_CODE != st.session_state.PIPELINE_SOURCE_CODE_PREV_RUN
+scan_button = st.sidebar.button("Run and Scan Pipeline", disabled=not code_has_changed)
 
 # What-if Analyses
-
 if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
     column_to_corruption = {}
@@ -131,9 +133,6 @@ left, right = st.columns(2)
 
 with left:
     pipeline_code_container = st.expander("Pipeline Code", expanded=True)
-    original_output_container = st.expander("Pipeline Output")
-    with original_output_container:
-        st.empty()
     original_dag_container = st.expander("Original DAG")
     with original_dag_container:
         st.empty()
@@ -156,92 +155,78 @@ with left:
     with intermediate_container_5:
         st.empty()
 with right:
-    estimation_results_container = st.expander("Estimation Results", expanded=True)
-    with estimation_results_container:
-        st.empty()
-    analysis_results_container = st.expander("Analysis Results", expanded=True)
-    with analysis_results_container:
+    results_container = st.expander("Results", expanded=True)
+    with results_container:
         st.empty()
     optimized_dag_container = st.expander("Optimized DAG")
     with optimized_dag_container:
         st.empty()
 
-### === BUTTONS ===
-code_has_changed = st.session_state.PIPELINE_SOURCE_CODE != st.session_state.PIPELINE_SOURCE_CODE_PREV_RUN
-scan_button = st.sidebar.button("Run and Scan Pipeline", disabled=not code_has_changed)
+### === ACTIONS ===
 estimate_button = st.sidebar.button("Estimate Execution Time", disabled=code_has_changed)
 run_button = st.sidebar.button("Run Analyses", disabled=code_has_changed)
 
 if scan_button:
-    st.session_state.ANALYSIS_RESULT = None
-    st.session_state.DAG_EXTRACTION_RESULT = None
-    st.session_state.ESTIMATION_RESULT = None
-    st.session_state.RUNTIME_ORIG = None
-    with estimation_results_container:
+    with results_container:
         with st.spinner("Running and scanning the pipeline..."):
             runtime_orig, dag_extraction_result = scan_pipeline(st.session_state.PIPELINE_SOURCE_CODE)
-            st.session_state.DAG_EXTRACTION_RESULT = dag_extraction_result
-            st.session_state.RUNTIME_ORIG = runtime_orig
-            st.session_state.PIPELINE_SOURCE_CODE_PREV_RUN = st.session_state.PIPELINE_SOURCE_CODE
-            st.experimental_rerun()
+        st.session_state.PIPELINE_SOURCE_CODE_PREV_RUN = st.session_state.PIPELINE_SOURCE_CODE
+        st.session_state.RUNTIME_ORIG = runtime_orig
+        st.session_state.DAG_EXTRACTION_RESULT = dag_extraction_result
+        st.session_state.ESTIMATION_RESULT = None
+        st.session_state.ANALYSIS_RESULT = None
+        st.experimental_rerun()
 
 if estimate_button:
-    st.session_state.ANALYSIS_RESULT = None
-    st.session_state.ESTIMATION_RESULT = None
-    with estimation_results_container:
+    with results_container:
         with st.spinner("Estimating analysis cost..."):
             st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
                                                                             *st.session_state.analyses.values())
+        st.session_state.ANALYSIS_RESULT = None
 
 if run_button:
-    st.session_state.ANALYSIS_RESULT = None
-    st.session_state.ESTIMATION_RESULT = None
     with right:
-        with estimation_results_container:
+        with results_container:
             with st.spinner("Estimating analysis cost..."):
                 st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
                                                                                 *st.session_state.analyses.values())
-        with analysis_results_container:
             with st.spinner("Analyzing pipeline..."):
                 st.session_state.ANALYSIS_RESULT = \
                     analyze_pipeline(st.session_state.DAG_EXTRACTION_RESULT, *st.session_state.analyses.values())
             st.balloons()
 
 ### === MAIN CONTENT ===
-with left:
-    with pipeline_code_container:
-        # st.code(pipeline_code)
-        # Check out more themes: https://github.com/okld/streamlit-ace/blob/main/streamlit_ace/__init__.py#L36-L43
-        st.session_state['PIPELINE_SOURCE_CODE'] = st_ace(value=st.session_state['PIPELINE_SOURCE_CODE'],
-                                                          language="python",
-                                                          theme="katzenmilch",
-                                                          auto_update=True)
+with pipeline_code_container:
+    # st.code(pipeline_code)
+    # Check out more themes: https://github.com/okld/streamlit-ace/blob/main/streamlit_ace/__init__.py#L36-L43
+    st.session_state['PIPELINE_SOURCE_CODE'] = st_ace(value=st.session_state['PIPELINE_SOURCE_CODE'],
+                                                        language="python",
+                                                        theme="katzenmilch",
+                                                        auto_update=True)
+    if st.session_state.DAG_EXTRACTION_RESULT:
+        st.code(st.session_state.DAG_EXTRACTION_RESULT.captured_orig_pipeline_stdout)
 
-if st.session_state.RUNTIME_ORIG:
-    with right:
-        with estimation_results_container:
-            runtime_orig = st.session_state.RUNTIME_ORIG
-            # TODO: Should we use humanize here?
-            #  from humanize import naturalsize
-            #  naturaldelta or something like that
-            st.markdown(f"Measured runtime of original pipeline is {runtime_orig}ms.")
+with results_container:
+    if st.session_state.RUNTIME_ORIG:
+        runtime_orig = st.session_state.RUNTIME_ORIG
+        # TODO: Should we use humanize here?
+        #  from humanize import naturalsize
+        #  naturaldelta or something like that
+        st.write(f"Measured runtime of original pipeline is {runtime_orig:.2f} ms.")
 
-if st.session_state.ESTIMATION_RESULT:
-    with right:
-        with estimation_results_container:
-            estimate = st.session_state.ESTIMATION_RESULT
-            # TODO: Should we use humanize here?
-            #  from humanize import naturalsize
-            #  naturaldelta or something like that
-            st.markdown(f"Estimated total runtime is {estimate.runtime_info.what_if_optimized_estimated}ms.")
-            st.markdown(
-                f"Estimated time saved with our multi-query optimization is {estimate.runtime_info.what_if_optimization_saving_estimated}ms.")
+    if st.session_state.ESTIMATION_RESULT:
+        estimate = st.session_state.ESTIMATION_RESULT
+        # TODO: Should we use humanize here?
+        #  from humanize import naturalsize
+        #  naturaldelta or something like that
+        st.write(f"Estimated total runtime is {estimate.runtime_info.what_if_optimized_estimated:.2f} ms.")
+        st.write("Estimated time saved with our multi-query optimization is "
+                    f"{estimate.runtime_info.what_if_optimization_saving_estimated:.2f} ms.")
 
-if st.session_state.ANALYSIS_RESULT:
-    with analysis_results_container:
+    if st.session_state.ANALYSIS_RESULT:
         for analysis in st.session_state.analyses.values():
             actual_runtime = st.session_state.ANALYSIS_RESULT.runtime_info.what_if_execution
-            st.markdown(f"Measured runtime of what-if analyses is {actual_runtime}ms.")
+            st.write(f"Measured runtime of what-if analyses is {actual_runtime:.2f} ms.")
 
             report = get_report(st.session_state.ANALYSIS_RESULT, analysis)
 
@@ -249,11 +234,14 @@ if st.session_state.ANALYSIS_RESULT:
             for column in metrics_frame_columns:
                 if len(report) != 0 and isinstance(report[column].iloc[0], MetricFrame):
                     # TODO: Better visualisation or remove MetricFrame from healthcare pipeline
+                    # Try `config.dataFrameSerialization = "arrow"` in case pyarrow's df serialization is better
                     report[column] = report.apply(lambda row: str(row[column].by_group), axis=1)
 
             st.subheader(analysis.__class__.__name__)
-            st.table(report)
-    with optimized_dag_container:
+            st.dataframe(report)
+
+with optimized_dag_container:
+    if st.session_state.ANALYSIS_RESULT:
         combined_plan = get_final_optimized_combined_colored_simple_dag(
             st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])
         cytoscape_data, stylesheet = render_graph3(combined_plan)
@@ -264,74 +252,75 @@ if st.session_state.ANALYSIS_RESULT:
         # st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
         # st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
 
-if st.session_state.DAG_EXTRACTION_RESULT:
-    with left:
-        with original_output_container:
-            st.code(st.session_state.DAG_EXTRACTION_RESULT.captured_orig_pipeline_stdout)
-        with original_dag_container:
-            original_plan = get_original_simple_dag(st.session_state.DAG_EXTRACTION_RESULT.original_dag)
-            cytoscape_data, stylesheet = render_graph3(original_plan)
-            selected = cytoscape(cytoscape_data, stylesheet, key="original-plan", layout={"name": "dagre"})
+with original_dag_container:
+    if st.session_state.DAG_EXTRACTION_RESULT:
+        original_plan = get_original_simple_dag(st.session_state.DAG_EXTRACTION_RESULT.original_dag)
+        cytoscape_data, stylesheet = render_graph3(original_plan)
+        selected = cytoscape(cytoscape_data, stylesheet, key="original-plan", layout={"name": "dagre"})
 
-            # If we want to show detail info, we can do that as well
-            # E.g., we could show code locations again
-            # st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
-            # st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
+        # If we want to show detail info, we can do that as well
+        # E.g., we could show code locations again
+        # st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
+        # st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
+
 if st.session_state.ANALYSIS_RESULT:
-    with left:
-        with intermediate_container_0:
-            # with_reuse_coloring=False here is important
-            colored_simple_dags = get_colored_simple_dags(
-                st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
-                with_reuse_coloring=False)
-            for dag_index, what_if_dag in enumerate(colored_simple_dags):
-                st.markdown(f"Variant {dag_index}")
-                cytoscape_data, stylesheet = render_graph3(what_if_dag)
-                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-0-unopt-variants-{dag_index}",
-                                     layout={"name": "dagre"})
-        with intermediate_container_1:
-            colored_simple_dags = get_colored_simple_dags(
-                st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
-                with_reuse_coloring=True)
-            for dag_index, what_if_dag in enumerate(colored_simple_dags):
-                st.markdown(f"Variant {dag_index}")
-                cytoscape_data, stylesheet = render_graph3(what_if_dag)
-                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-1-cse-{dag_index}",
-                                     layout={"name": "dagre"})
-        # print(st.session_state.ANALYSIS_RESULT.intermediate_stages.keys())
-        with intermediate_container_2:
-            colored_simple_dags = get_colored_simple_dags(
-                st.session_state.ANALYSIS_RESULT.intermediate_stages['1-optimize_dag_2_OperatorDeletionFilterPushUp'],
-                with_reuse_coloring=True)
-            for dag_index, what_if_dag in enumerate(colored_simple_dags):
-                st.markdown(f"Variant {dag_index}")
-                cytoscape_data, stylesheet = render_graph3(what_if_dag)
-                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-2-filter-remove-{dag_index}",
-                                     layout={"name": "dagre"})
-        with intermediate_container_3:
-            colored_simple_dags = get_colored_simple_dags(
-                st.session_state.ANALYSIS_RESULT.intermediate_stages['2-optimize_patches_0_SimpleProjectionPushUp'],
-                with_reuse_coloring=True)
-            for dag_index, what_if_dag in enumerate(colored_simple_dags):
-                st.markdown(f"Variant {dag_index}")
-                cytoscape_data, stylesheet = render_graph3(what_if_dag)
-                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-3-proj-add-{dag_index}",
-                                     layout={"name": "dagre"})
-        with intermediate_container_4:
-            colored_simple_dags = get_colored_simple_dags(
-                st.session_state.ANALYSIS_RESULT.intermediate_stages['3-optimize_patches_1_SimpleFilterAdditionPushUp'],
-                with_reuse_coloring=True)
-            for dag_index, what_if_dag in enumerate(colored_simple_dags):
-                st.markdown(f"Variant {dag_index}")
-                cytoscape_data, stylesheet = render_graph3(what_if_dag)
-                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-4-filter-add-{dag_index}",
-                                     layout={"name": "dagre"})
-        with intermediate_container_5:
-            colored_simple_dags = get_colored_simple_dags(
-                st.session_state.ANALYSIS_RESULT.intermediate_stages['4-optimize_patches_3_UdfSplitAndReuse'],
-                with_reuse_coloring=True)
-            for dag_index, what_if_dag in enumerate(colored_simple_dags):
-                st.markdown(f"Variant {dag_index}")
-                cytoscape_data, stylesheet = render_graph3(what_if_dag)
-                selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-5-udf-add-{dag_index}",
-                                     layout={"name": "dagre"})
+    with intermediate_container_0:
+        # with_reuse_coloring=False here is important
+        colored_simple_dags = get_colored_simple_dags(
+            st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
+            with_reuse_coloring=False)
+        for dag_index, what_if_dag in enumerate(colored_simple_dags):
+            st.markdown(f"Variant {dag_index}")
+            cytoscape_data, stylesheet = render_graph3(what_if_dag)
+            selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-0-unopt-variants-{dag_index}",
+                                    layout={"name": "dagre"})
+    with intermediate_container_1:
+        colored_simple_dags = get_colored_simple_dags(
+            st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
+            with_reuse_coloring=True)
+        for dag_index, what_if_dag in enumerate(colored_simple_dags):
+            st.markdown(f"Variant {dag_index}")
+            cytoscape_data, stylesheet = render_graph3(what_if_dag)
+            selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-1-cse-{dag_index}",
+                                    layout={"name": "dagre"})
+    # print(st.session_state.ANALYSIS_RESULT.intermediate_stages.keys())
+    with intermediate_container_2:
+        colored_simple_dags = get_colored_simple_dags(
+            st.session_state.ANALYSIS_RESULT.intermediate_stages['1-optimize_dag_2_OperatorDeletionFilterPushUp'],
+            with_reuse_coloring=True)
+        for dag_index, what_if_dag in enumerate(colored_simple_dags):
+            st.markdown(f"Variant {dag_index}")
+            cytoscape_data, stylesheet = render_graph3(what_if_dag)
+            selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-2-filter-remove-{dag_index}",
+                                    layout={"name": "dagre"})
+    with intermediate_container_3:
+        colored_simple_dags = get_colored_simple_dags(
+            st.session_state.ANALYSIS_RESULT.intermediate_stages['2-optimize_patches_0_SimpleProjectionPushUp'],
+            with_reuse_coloring=True)
+        for dag_index, what_if_dag in enumerate(colored_simple_dags):
+            st.markdown(f"Variant {dag_index}")
+            cytoscape_data, stylesheet = render_graph3(what_if_dag)
+            selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-3-proj-add-{dag_index}",
+                                    layout={"name": "dagre"})
+    with intermediate_container_4:
+        colored_simple_dags = get_colored_simple_dags(
+            st.session_state.ANALYSIS_RESULT.intermediate_stages['3-optimize_patches_1_SimpleFilterAdditionPushUp'],
+            with_reuse_coloring=True)
+        for dag_index, what_if_dag in enumerate(colored_simple_dags):
+            st.markdown(f"Variant {dag_index}")
+            cytoscape_data, stylesheet = render_graph3(what_if_dag)
+            selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-4-filter-add-{dag_index}",
+                                    layout={"name": "dagre"})
+    with intermediate_container_5:
+        colored_simple_dags = get_colored_simple_dags(
+            st.session_state.ANALYSIS_RESULT.intermediate_stages['4-optimize_patches_3_UdfSplitAndReuse'],
+            with_reuse_coloring=True)
+        for dag_index, what_if_dag in enumerate(colored_simple_dags):
+            st.markdown(f"Variant {dag_index}")
+            cytoscape_data, stylesheet = render_graph3(what_if_dag)
+            selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-5-udf-add-{dag_index}",
+                                    layout={"name": "dagre"})
+
+# outside of columns
+# DAGs of two variants side by side
+# slider? to click through intermediate DAGs step by step
