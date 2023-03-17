@@ -15,7 +15,7 @@ from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2
 from constants import PIPELINE_CONFIG
 
 if 'PIPELINE_SOURCE_CODE' not in st.session_state:
-    st.session_state['PIPELINE_SOURCE_CODE'] = None
+    st.session_state['PIPELINE_SOURCE_CODE'] = ''
 
 if 'ANALYSIS_RESULT' not in st.session_state:
     st.session_state['ANALYSIS_RESULT'] = None
@@ -45,7 +45,7 @@ st.sidebar.title("Configuration")
 pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()))
 pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
 pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
-if st.session_state.PIPELINE_SOURCE_CODE is None:
+if st.sidebar.button("Load source code"):
     with open(pipeline_filename) as f:
         st.session_state['PIPELINE_SOURCE_CODE'] = f.read()
     st.session_state['ANALYSIS_RESULT'] = None
