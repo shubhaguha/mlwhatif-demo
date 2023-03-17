@@ -25,7 +25,7 @@ pip install -U pip
 SETUPTOOLS_USE_DISTUTILS=stdlib pip install -r requirements.txt
 
 # Run the web app
-streamlit run app.py
+streamlit run app.py --theme.base light
 ```
 
 Visit <http://localhost:8501> in your browser.
