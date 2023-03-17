@@ -6,7 +6,6 @@ from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
 
 from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
-from mlwhatif.analysis._permutation_feature_importance import PermutationFeatureImportance
 from mlwhatif.analysis._operator_impact import OperatorImpact
 from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
 from mlwhatif.visualisation._visualisation import get_final_optimized_combined_colored_simple_dag, \
@@ -88,14 +87,6 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
                                 corruption_percentages=(p / 100. for p in corruption_percentages),
                                 also_corrupt_train=also_corrupt_train)
     st.session_state.analyses["robustness"] = robustness
-
-# if st.sidebar.checkbox("Permutation Importance"):
-#     # restrict_to_columns: Iterable[str] or None = None
-#     restrict_to_columns = st.sidebar.multiselect("Restrict to columns", pipeline_columns)
-#
-#     # __init__
-#     importance = PermutationFeatureImportance(restrict_to_columns=restrict_to_columns)
-#     analyses["importance"] = importance
 
 if st.sidebar.checkbox("Operator Impact"):
     # test_transformers=True
