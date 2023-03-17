@@ -68,20 +68,21 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
             column, CorruptionType.__members__.values(), format_func=lambda m: m.value)
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
-    corruption_percentages = []
-    num = st.sidebar.number_input(
-        "Corruption percentage", min_value=0.0, max_value=1.0, step=0.01, key=0)
-    while num and num > 0:
-        corruption_percentages.append(num)
-        num = st.sidebar.number_input("Corruption percentage", min_value=0.0,
-                                      max_value=1.0, step=0.01, key=len(corruption_percentages))
+    corruption_percentages = st.sidebar.multiselect("Corruption percentages", list(range(0,100,10)))
+    # corruption_percentages = []
+    # num = st.sidebar.number_input(
+    #     "Corruption percentage", min_value=0.0, max_value=1.0, step=0.01, key=0)
+    # while num and num > 0:
+    #     corruption_percentages.append(num)
+    #     num = st.sidebar.number_input("Corruption percentage", min_value=0.0,
+    #                                   max_value=1.0, step=0.01, key=len(corruption_percentages))
 
     # also_corrupt_train: bool = False):
     also_corrupt_train = st.sidebar.checkbox("Also corrupt train")
 
     # __init__
     robustness = DataCorruption(column_to_corruption=list(column_to_corruption.items()),
-                                corruption_percentages=corruption_percentages,
+                                corruption_percentages=(p/100. for p in corruption_percentages),
                                 also_corrupt_train=also_corrupt_train)
     st.session_state.analyses["robustness"] = robustness
 
