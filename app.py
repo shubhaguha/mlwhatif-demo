@@ -111,14 +111,21 @@ if st.sidebar.checkbox("Operator Impact"):
 
 if st.sidebar.checkbox("Data Cleaning"):
     # columns_with_error: dict[str or None, ErrorType] or List[Tuple[str, ErrorType]]
+    labels_ui_col = "LABELS"
     columns_with_error = {}
-    selected_columns = st.sidebar.multiselect("Columns with errors", pipeline_columns + ["_TARGET_"])
+    selected_columns = st.sidebar.multiselect("Columns with errors", pipeline_columns + [labels_ui_col])
     for column in selected_columns:
         columns_with_error[column] = st.sidebar.selectbox(
             column, ErrorType.__members__.values(), format_func=lambda m: m.value)
 
     # __init__
-    cleanlearn = DataCleaning(columns_with_error=columns_with_error)
+    columns_with_error_with_label_formatting = {}
+    for column_name, error_name in columns_with_error.items():
+        if column_name == labels_ui_col:
+            columns_with_error_with_label_formatting[None] = error_name
+        else:
+            columns_with_error_with_label_formatting[column_name] = error_name
+    cleanlearn = DataCleaning(columns_with_error=columns_with_error_with_label_formatting)
     st.session_state.analyses["cleanlearn"] = cleanlearn
 
 ### === LAYOUT ===
@@ -182,6 +189,7 @@ if estimate_button:
 
 if run_button:
     with results_container:
+        print("start")
         with st.spinner("Estimating analysis cost..."):
             st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
                                                                             *st.session_state.analyses.values())
@@ -189,6 +197,7 @@ if run_button:
             st.session_state.ANALYSIS_RESULT = \
                 analyze_pipeline(st.session_state.DAG_EXTRACTION_RESULT, *st.session_state.analyses.values())
         st.balloons()
+        print("end")
 
 ### === MAIN CONTENT ===
 with pipeline_code_container:
