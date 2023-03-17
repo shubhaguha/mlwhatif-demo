@@ -1,20 +1,21 @@
-import pandas
 from fairlearn.metrics import MetricFrame
+import pandas
 import streamlit as st
-from mlwhatif.execution._patches import AppendNodeAfterOperator, DataProjection, OperatorReplacement, DataTransformer, \
-    DataFiltering
 from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
 
 from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
 from mlwhatif.analysis._operator_impact import OperatorImpact
 from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
+from mlwhatif.execution._patches import AppendNodeAfterOperator, DataProjection, OperatorReplacement, DataTransformer, \
+    DataFiltering
 from mlwhatif.visualisation._visualisation import get_final_optimized_combined_colored_simple_dag, \
     get_original_simple_dag, get_colored_simple_dags
 
 from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2, render_graph3, scan_pipeline, \
-    estimate_pipeline_analysis
+    estimate_pipeline_analysis, render_dag_slot, render_dag_comparison
 from constants import PIPELINE_CONFIG
+
 
 if 'PIPELINE_SOURCE_CODE_PREV_RUN' not in st.session_state:
     st.session_state['PIPELINE_SOURCE_CODE_PREV_RUN'] = None
@@ -71,7 +72,8 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
             column, CorruptionType.__members__.values(), format_func=lambda m: m.value)
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
-    corruption_percentages = st.sidebar.multiselect("Corruption percentages", list(range(0, 100, 10)))
+    corruption_percentages = st.sidebar.multiselect("Corruption percentages", list(range(0, 101, 10)),
+                                                    format_func=lambda i: f"{i}%")
     # corruption_percentages = []
     # num = st.sidebar.number_input(
     #     "Corruption percentage", min_value=0.0, max_value=1.0, step=0.01, key=0)
@@ -362,6 +364,19 @@ if st.session_state.ANALYSIS_RESULT:
             selected = cytoscape(cytoscape_data, stylesheet, key=f"plan-5-udf-add-{dag_index}",
                                  layout={"name": "dagre"})
 
-# outside of columns
-# DAGs of two variants side by side
-# slider? to click through intermediate DAGs step by step
+st.markdown("""---""")
+
+dag_mapping = {
+    "original": lambda: render_dag_slot("original"),
+    "variants": lambda: render_dag_comparison("original", "variants"),
+    "shared": lambda: render_dag_comparison("variants", "shared"),
+    "FRP": lambda: render_dag_comparison("shared", "FRP"),
+    "PP": lambda: render_dag_comparison("FRP", "PP"),
+    "FAP": lambda: render_dag_comparison("PP", "FAP"),
+    "UDF": lambda: render_dag_comparison("FAP", "UDF"),
+    "merged": lambda: render_dag_comparison("UDF", "merged"),
+    "done": lambda: render_dag_slot("merged"),
+}
+dag_choice = st.radio("DAGs", list(dag_mapping.keys()), horizontal=True)
+
+dag_mapping[dag_choice]()

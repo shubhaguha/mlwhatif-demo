@@ -2,14 +2,15 @@ from inspect import cleandoc
 
 import matplotlib.pyplot as plt
 import networkx as nx
-from example_pipelines.healthcare import custom_monkeypatching
 from networkx.drawing.nx_agraph import to_agraph, graphviz_layout
 from pyvis.network import Network
 import streamlit as st
 import streamlit.components.v1 as components
 
+from example_pipelines.healthcare import custom_monkeypatching
 from mlwhatif import PipelineAnalyzer
-from mlwhatif.visualisation._visualisation import get_original_simple_dag
+from mlwhatif.visualisation._visualisation import get_original_simple_dag, get_colored_simple_dags, \
+    get_final_optimized_combined_colored_simple_dag
 from st_cytoscape import cytoscape
 
 
@@ -23,8 +24,7 @@ def analyze_pipeline(dag_extraction_result, *_what_if_analyses, add_monkey_patch
     builder = builder.add_custom_monkey_patching_modules([custom_monkeypatching])
 
     if add_monkey_patching:
-        # TODO: add monkey patching only when necessary?
-        pass
+        builder = builder.add_custom_monkey_patching_module(custom_monkeypatching)
 
     analysis_result = builder.execute()
 
@@ -41,8 +41,7 @@ def estimate_pipeline_analysis(dag_extraction_result, *_what_if_analyses, add_mo
     builder = builder.add_custom_monkey_patching_modules([custom_monkeypatching])
 
     if add_monkey_patching:
-        # TODO: add monkey patching only when necessary?
-        pass
+        builder = builder.add_custom_monkey_patching_module(custom_monkeypatching)
 
     estimation_result = builder.estimate()
 
@@ -56,8 +55,7 @@ def scan_pipeline(pipeline_source_code, add_monkey_patching=False):
     builder = builder.add_custom_monkey_patching_modules([custom_monkeypatching])
 
     if add_monkey_patching:
-        # TODO: add monkey patching only when necessary?
-        pass
+        builder = builder.add_custom_monkey_patching_module(custom_monkeypatching)
 
     result = builder.execute()
     runtime_orig = result.runtime_info.original_pipeline_estimated
@@ -91,6 +89,7 @@ def render_graph2(graph: nx.classes.digraph.DiGraph):
         source_code = html_file.read() 
     # components.html(source_code, height=1200, width=1000)
     components.html(source_code, height=600)
+
 
 def render_graph3(graph: nx.classes.digraph.DiGraph):
 
@@ -173,3 +172,78 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
     # with open("graph.html", "r", encoding="utf-8") as html_file:
     #     source_code = html_file.read()
     # components.html(source_code, height=600)
+
+
+def get_dags(name):
+    if name == "original":
+        if st.session_state.DAG_EXTRACTION_RESULT:
+            return get_original_simple_dag(st.session_state.DAG_EXTRACTION_RESULT.original_dag)
+    elif name == "variants":
+        if st.session_state.ANALYSIS_RESULT:
+            return get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
+                with_reuse_coloring=False)
+    elif name == "shared":
+        if st.session_state.ANALYSIS_RESULT:
+            return get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
+                with_reuse_coloring=True)
+    elif name == "frp":
+        if st.session_state.ANALYSIS_RESULT:
+            return get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages['1-optimize_dag_2_OperatorDeletionFilterPushUp'],
+                with_reuse_coloring=True)
+    elif name == "pp":
+        if st.session_state.ANALYSIS_RESULT:
+            return get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages['2-optimize_patches_0_SimpleProjectionPushUp'],
+                with_reuse_coloring=True)
+    elif name == "fap":
+        if st.session_state.ANALYSIS_RESULT:
+            return get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages['3-optimize_patches_1_SimpleFilterAdditionPushUp'],
+                with_reuse_coloring=True)
+    elif name == "udf":
+        if st.session_state.ANALYSIS_RESULT:
+            return get_colored_simple_dags(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages['4-optimize_patches_3_UdfSplitAndReuse'],
+                with_reuse_coloring=True)
+    elif name == "merged":
+        if st.session_state.ANALYSIS_RESULT:
+            return get_final_optimized_combined_colored_simple_dag(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])
+
+
+def render_cytoscape(dag):
+    if dag:
+        cytoscape_data, stylesheet = render_graph3(dag)
+        return cytoscape(cytoscape_data, stylesheet, layout={"name": "dagre"})
+
+
+def render_dag_slot(name):
+    if name == "original":
+        render_cytoscape(get_dags("original"))
+        st.write("Here is a description of what the original DAG is")
+    elif name == "merged":
+        if st.session_state.ANALYSIS_RESULT:
+            render_cytoscape(get_dags("merged"))
+        st.write("Here is a description of what the merged DAG is")
+    else:
+        colored_simple_dags = get_dags(name)
+        for dag_index, what_if_dag in enumerate(colored_simple_dags):
+            st.markdown(f"Variant {dag_index}")
+            render_cytoscape(what_if_dag)
+        st.write(f"Here is a description of what the {name} is")
+
+
+def render_dag_comparison(before, after):
+    left, right = st.columns(2)
+    with left:
+        with st.container():
+            st.write("before")
+            render_dag_slot(before)
+
+    with right:
+        with st.container():
+            st.write("after")
+            render_dag_slot(after)
