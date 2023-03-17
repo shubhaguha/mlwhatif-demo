@@ -265,9 +265,7 @@ if st.session_state.ANALYSIS_RESULT:
 if st.session_state.DAG_EXTRACTION_RESULT:
     with left:
         with original_output_container:
-            st.markdown("The output of the original pipeline")
-            # TODO: This ignores newlines, also this needs some better formatting
-            st.markdown(st.session_state.DAG_EXTRACTION_RESULT.captured_orig_pipeline_stdout)
+            st.code(st.session_state.DAG_EXTRACTION_RESULT.captured_orig_pipeline_stdout)
         with original_dag_container:
             original_plan = get_original_simple_dag(st.session_state.DAG_EXTRACTION_RESULT.original_dag)
             cytoscape_data, stylesheet = render_graph3(original_plan)
