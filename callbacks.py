@@ -1,16 +1,15 @@
-from inspect import cleandoc
-
 import matplotlib.pyplot as plt
 import networkx as nx
-from networkx.drawing.nx_agraph import to_agraph, graphviz_layout
-from pyvis.network import Network
+import pandas
 import streamlit as st
 import streamlit.components.v1 as components
-
 from example_pipelines.healthcare import custom_monkeypatching
 from mlwhatif import PipelineAnalyzer
+from mlwhatif.execution._patches import AppendNodeAfterOperator, DataProjection, OperatorReplacement, DataTransformer, \
+    DataFiltering
 from mlwhatif.visualisation._visualisation import get_original_simple_dag, get_colored_simple_dags, \
     get_final_optimized_combined_colored_simple_dag
+from pyvis.network import Network
 from st_cytoscape import cytoscape
 
 
@@ -175,75 +174,127 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
 
 
 def get_dags(name):
-    if name == "original":
+    if name == "Original":
         if st.session_state.DAG_EXTRACTION_RESULT:
-            return get_original_simple_dag(st.session_state.DAG_EXTRACTION_RESULT.original_dag)
-    elif name == "variants":
+            return [get_original_simple_dag(st.session_state.DAG_EXTRACTION_RESULT.original_dag)]
+    elif name == "Variants":
         if st.session_state.ANALYSIS_RESULT:
             return get_colored_simple_dags(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
                 with_reuse_coloring=False)
-    elif name == "shared":
+    elif name == "Shared":
         if st.session_state.ANALYSIS_RESULT:
             return get_colored_simple_dags(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages["0-unoptimized_variants"],
                 with_reuse_coloring=True)
-    elif name == "frp":
+    elif name == "FRP":
         if st.session_state.ANALYSIS_RESULT:
             return get_colored_simple_dags(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages['1-optimize_dag_2_OperatorDeletionFilterPushUp'],
                 with_reuse_coloring=True)
-    elif name == "pp":
+    elif name == "PP":
         if st.session_state.ANALYSIS_RESULT:
             return get_colored_simple_dags(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages['2-optimize_patches_0_SimpleProjectionPushUp'],
                 with_reuse_coloring=True)
-    elif name == "fap":
+    elif name == "FP":
         if st.session_state.ANALYSIS_RESULT:
             return get_colored_simple_dags(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages['3-optimize_patches_1_SimpleFilterAdditionPushUp'],
                 with_reuse_coloring=True)
-    elif name == "udf":
+    elif name == "UDF":
         if st.session_state.ANALYSIS_RESULT:
             return get_colored_simple_dags(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages['4-optimize_patches_3_UdfSplitAndReuse'],
                 with_reuse_coloring=True)
-    elif name == "merged":
+    elif name == "Merged":
         if st.session_state.ANALYSIS_RESULT:
-            return get_final_optimized_combined_colored_simple_dag(
-                st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])
+            return [get_final_optimized_combined_colored_simple_dag(
+                st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])]
 
 
-def render_cytoscape(dag):
+def render_cytoscape(dag, key):
     if dag:
         cytoscape_data, stylesheet = render_graph3(dag)
-        return cytoscape(cytoscape_data, stylesheet, layout={"name": "dagre"})
+        return cytoscape(cytoscape_data, stylesheet, layout={"name": "dagre"}, key=key)
 
 
-def render_dag_slot(name):
-    if name == "original":
-        render_cytoscape(get_dags("original"))
+def render_dag_slot(name, dag, key):
+    if name == "Original":
+        render_cytoscape(dag, key)
         st.write("Here is a description of what the original DAG is")
-    elif name == "merged":
+    elif name == "Merged":
         if st.session_state.ANALYSIS_RESULT:
-            render_cytoscape(get_dags("merged"))
+            render_cytoscape(dag, key)
         st.write("Here is a description of what the merged DAG is")
     else:
-        colored_simple_dags = get_dags(name)
-        for dag_index, what_if_dag in enumerate(colored_simple_dags):
-            st.markdown(f"Variant {dag_index}")
-            render_cytoscape(what_if_dag)
+        if st.session_state.ANALYSIS_RESULT:
+            render_cytoscape(dag, key)
         st.write(f"Here is a description of what the {name} is")
 
 
-def render_dag_comparison(before, after):
-    left, right = st.columns(2)
-    with left:
-        with st.container():
-            st.write("before")
-            render_dag_slot(before)
+def render_full_size_dag(stage_name):
+    if st.session_state.DAG_EXTRACTION_RESULT:
+        dag = get_dags(stage_name)[0]
+        render_dag_slot(stage_name, dag, f"full-size-{stage_name}")
 
-    with right:
+
+def render_dag_comparison(before, after):
+    dags_before = get_dags(before)
+    dags_after = get_dags(after)
+    if len(dags_before) == 1:
+        dags_before = [orig_dag for orig_dag in dags_before for _ in range(len(dags_after))]
+    if len(dags_after) == 1:
+        dags_after = [merged_dag for merged_dag in dags_after for _ in range(len(dags_before))]
+
+    patches = st.session_state.ANALYSIS_RESULT.what_if_patches
+    for variant_index in range(len(patches)):
         with st.container():
-            st.write("after")
-            render_dag_slot(after)
+            st.markdown(f"Variant {variant_index}")
+            render_patches(patches[variant_index])
+
+            left, right = st.columns(2)
+            with left:
+                with st.container():
+                    st.write("before")
+                    render_dag_slot(before, dags_before[variant_index], f"before-{before}-{variant_index}")
+
+            with right:
+                with st.container():
+                    st.write("after")
+                    render_dag_slot(after, dags_after[variant_index], f"after-{after}-{variant_index}")
+
+
+def render_patches(variant_patches):
+    patch_names = []
+    patch_analyses = []
+    patch_descriptions = []
+    for patch in variant_patches:
+        if type(patch) != AppendNodeAfterOperator:
+            patch_analyses.append(type(patch.analysis).__name__)
+            if type(patch) == DataProjection:
+                patch_names.append(type(patch).__name__)
+                patch_descriptions.append(patch.projection_operator.details.description)
+            elif type(patch) == OperatorReplacement:
+                patch_names.append(type(patch).__name__)
+                description = f"Replace '{patch.operator_to_replace.details.description}' with " \
+                              f"'{patch.replacement_operator.details.description}'"
+                patch_descriptions.append(description)
+            elif type(patch) == DataTransformer:
+                patch_names.append("DataEstimator")
+                description = f"{patch.fit_transform_operator.details.description}"
+                patch_descriptions.append(description)
+            elif type(patch) == DataFiltering:
+                patch_names.append("DataFilter")
+                description = f"{patch.filter_operator.details.description}"
+                if patch.train_not_test:
+                    description += ' on train side'
+                else:
+                    description += ' on test side'
+                patch_descriptions.append(description)
+            else:
+                patch_names.append(type(patch).__name__)
+                patch_descriptions.append("")
+    variant_df = pandas.DataFrame({'Patch Type': patch_names, 'Analysis': patch_analyses,
+                                   'Description': patch_descriptions})
+    st.table(variant_df)

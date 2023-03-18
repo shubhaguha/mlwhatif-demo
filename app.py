@@ -1,21 +1,16 @@
-from fairlearn.metrics import MetricFrame
-import pandas
 import streamlit as st
+from fairlearn.metrics import MetricFrame
+from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
+from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
+from mlwhatif.analysis._operator_impact import OperatorImpact
+from mlwhatif.visualisation._visualisation import get_final_optimized_combined_colored_simple_dag, \
+    get_original_simple_dag, get_colored_simple_dags
 from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
 
-from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
-from mlwhatif.analysis._operator_impact import OperatorImpact
-from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
-from mlwhatif.execution._patches import AppendNodeAfterOperator, DataProjection, OperatorReplacement, DataTransformer, \
-    DataFiltering
-from mlwhatif.visualisation._visualisation import get_final_optimized_combined_colored_simple_dag, \
-    get_original_simple_dag, get_colored_simple_dags
-
-from callbacks import analyze_pipeline, get_report, render_graph1, render_graph2, render_graph3, scan_pipeline, \
-    estimate_pipeline_analysis, render_dag_slot, render_dag_comparison
+from callbacks import analyze_pipeline, get_report, render_graph3, scan_pipeline, \
+    estimate_pipeline_analysis, render_dag_slot, render_dag_comparison, render_patches, render_full_size_dag
 from constants import PIPELINE_CONFIG
-
 
 if 'PIPELINE_SOURCE_CODE_PREV_RUN' not in st.session_state:
     st.session_state['PIPELINE_SOURCE_CODE_PREV_RUN'] = None
@@ -269,44 +264,13 @@ with original_dag_container:
         # st.markdown("**Selected nodes**: %s" % (", ".join(selected["nodes"])))
         # st.markdown("**Selected edges**: %s" % (", ".join(selected["edges"])))
 
+
 if st.session_state.ANALYSIS_RESULT:
     with intermediate_container_0:
         # with_reuse_coloring=False here is important
         for variant_index, patches in enumerate(st.session_state.ANALYSIS_RESULT.what_if_patches):
             st.markdown(f"Variant {variant_index}")
-            patch_names = []
-            patch_analyses = []
-            patch_descriptions = []
-            for patch in patches:
-                if type(patch) != AppendNodeAfterOperator:
-                    patch_analyses.append(type(patch.analysis).__name__)
-                    if type(patch) == DataProjection:
-                        patch_names.append(type(patch).__name__)
-                        patch_descriptions.append(patch.projection_operator.details.description)
-                    elif type(patch) == OperatorReplacement:
-                        patch_names.append(type(patch).__name__)
-                        description = f"Replace '{patch.operator_to_replace.details.description}' with " \
-                                      f"'{patch.replacement_operator.details.description}'"
-                        patch_descriptions.append(description)
-                    elif type(patch) == DataTransformer:
-                        patch_names.append("DataEstimator")
-                        description = f"{patch.fit_transform_operator.details.description}"
-                        patch_descriptions.append(description)
-                    elif type(patch) == DataFiltering:
-                        patch_names.append("DataFilter")
-                        description = f"{patch.filter_operator.details.description}"
-                        if patch.train_not_test:
-                            description += ' on train side'
-                        else:
-                            description += ' on test side'
-                        patch_descriptions.append(description)
-                    else:
-                        patch_names.append(type(patch).__name__)
-                        patch_descriptions.append("")
-
-            variant_df = pandas.DataFrame({'Patch Type': patch_names, 'Analysis': patch_analyses,
-                                           'Description': patch_descriptions})
-            st.table(variant_df)
+            render_patches(patches)
     with intermediate_container_1:
         # with_reuse_coloring=False here is important
         colored_simple_dags = get_colored_simple_dags(
@@ -367,16 +331,17 @@ if st.session_state.ANALYSIS_RESULT:
 st.markdown("""---""")
 
 dag_mapping = {
-    "original": lambda: render_dag_slot("original"),
-    "variants": lambda: render_dag_comparison("original", "variants"),
-    "shared": lambda: render_dag_comparison("variants", "shared"),
-    "FRP": lambda: render_dag_comparison("shared", "FRP"),
+    "Original": lambda: render_full_size_dag("Original"),
+    "Variants": lambda: render_dag_comparison("Original", "Variants"),
+    "Shared": lambda: render_dag_comparison("Variants", "Shared"),
+    "FRP": lambda: render_dag_comparison("Shared", "FRP"),
     "PP": lambda: render_dag_comparison("FRP", "PP"),
-    "FAP": lambda: render_dag_comparison("PP", "FAP"),
-    "UDF": lambda: render_dag_comparison("FAP", "UDF"),
-    "merged": lambda: render_dag_comparison("UDF", "merged"),
-    "done": lambda: render_dag_slot("merged"),
+    "FP": lambda: render_dag_comparison("PP", "FP"),
+    "UDF": lambda: render_dag_comparison("FP", "UDF"),
+    "Merged": lambda: render_dag_comparison("UDF", "Merged"),
+    "Done": lambda: render_full_size_dag("Merged"),
 }
+
 dag_choice = st.radio("DAGs", list(dag_mapping.keys()), horizontal=True)
 
 dag_mapping[dag_choice]()
