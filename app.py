@@ -9,7 +9,7 @@ from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
 
 from callbacks import analyze_pipeline, get_report, render_graph3, scan_pipeline, \
-    estimate_pipeline_analysis, render_dag_slot, render_dag_comparison, render_patches, render_full_size_dag
+    estimate_pipeline_analysis, render_dag_comparison, render_patches, render_full_size_dag
 from constants import PIPELINE_CONFIG
 
 if 'PIPELINE_SOURCE_CODE_PREV_RUN' not in st.session_state:
@@ -338,10 +338,12 @@ dag_mapping = {
     "PP": lambda: render_dag_comparison("FRP", "PP"),
     "FP": lambda: render_dag_comparison("PP", "FP"),
     "UDF": lambda: render_dag_comparison("FP", "UDF"),
-    "Merged": lambda: render_dag_comparison("UDF", "Merged"),
+    "Merging": lambda: render_dag_comparison("UDF", "Merging"),
     "Done": lambda: render_full_size_dag("Merged"),
 }
 
-dag_choice = st.radio("DAGs", list(dag_mapping.keys()), horizontal=True)
+# st.markdown("## How it works")
+with st.expander("How it works"):
+    dag_choice = st.radio("", list(dag_mapping.keys()), horizontal=True)
 
-dag_mapping[dag_choice]()
+    dag_mapping[dag_choice]()

@@ -207,7 +207,7 @@ def get_dags(name):
             return get_colored_simple_dags(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages['4-optimize_patches_3_UdfSplitAndReuse'],
                 with_reuse_coloring=True)
-    elif name == "Merged":
+    elif name == "Merging":
         if st.session_state.ANALYSIS_RESULT:
             return [get_final_optimized_combined_colored_simple_dag(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])]
@@ -221,9 +221,10 @@ def render_cytoscape(dag, key):
 
 def render_dag_slot(name, dag, key):
     if name == "Original":
-        render_cytoscape(dag, key)
-        st.write("Here is a description of what the original DAG is")
-    elif name == "Merged":
+        if st.session_state.DAG_EXTRACTION_RESULT:
+            render_cytoscape(dag, key)
+            st.write("Here is a description of what the original DAG is")
+    elif name == "Merging":
         if st.session_state.ANALYSIS_RESULT:
             render_cytoscape(dag, key)
         st.write("Here is a description of what the merged DAG is")
@@ -248,21 +249,36 @@ def render_dag_comparison(before, after):
         dags_after = [merged_dag for merged_dag in dags_after for _ in range(len(dags_before))]
 
     patches = st.session_state.ANALYSIS_RESULT.what_if_patches
-    for variant_index in range(len(patches)):
-        with st.container():
-            st.markdown(f"Variant {variant_index}")
-            render_patches(patches[variant_index])
-
-            left, right = st.columns(2)
-            with left:
-                with st.container():
-                    st.write("before")
-                    render_dag_slot(before, dags_before[variant_index], f"before-{before}-{variant_index}")
-
+    for variant_left, variant_right in zip(range(0, len(patches), 2), range(1, len(patches) + 1, 2)):
+        left, right = st.columns(2)
+        with left:
+            st.markdown(f"### Variant {variant_left}")
+            render_patches(patches[variant_left])
+        if variant_right < len(patches):
             with right:
-                with st.container():
-                    st.write("after")
-                    render_dag_slot(after, dags_after[variant_index], f"after-{after}-{variant_index}")
+                st.markdown(f"### Variant {variant_right}")
+                render_patches(patches[variant_right])
+        columns = st.columns(4)
+        with st.container():
+            render_variant_slot(after, before, dags_after, dags_before, variant_left, columns[0:2])
+        if variant_right < len(patches):
+            with st.container():
+                render_variant_slot(after, before, dags_after, dags_before, variant_right, columns[2:4])
+        st.markdown("""---""")
+
+
+def render_variant_slot(after, before, dags_after, dags_before, variant_index, columns):
+    with st.container():
+        left, right = columns
+        with left:
+            with st.container():
+                st.write("#### before")
+                render_dag_slot(before, dags_before[variant_index], f"before-{before}-{variant_index}")
+
+        with right:
+            with st.container():
+                st.write("#### after")
+                render_dag_slot(after, dags_after[variant_index], f"after-{after}-{variant_index}")
 
 
 def render_patches(variant_patches):
