@@ -327,6 +327,7 @@ def render_patches(variant_patches, key=None):
                 else:
                     description += ' on test side'
                 patch_descriptions.append(description)
+            # TODO: Model patches
             else:
                 patch_names.append(type(patch).__name__)
                 patch_descriptions.append("")

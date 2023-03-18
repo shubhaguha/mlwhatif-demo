@@ -245,6 +245,7 @@ with results_container:
                     # TODO: Better visualisation or remove MetricFrame from healthcare pipeline
                     # Try `config.dataFrameSerialization = "arrow"` in case pyarrow's df serialization is better
                     report[column] = report.apply(lambda row: str(row[column].by_group), axis=1)
+            # TODO: Map mislabel cleaning None back to LABELS?
 
             st.subheader(analysis.__class__.__name__)
             st.dataframe(report)
