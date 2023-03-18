@@ -267,6 +267,7 @@ def render_dag_comparison(before, after):
     if len(dags_after) == 1:
         dags_after = [merged_dag for merged_dag in dags_after for _ in range(len(dags_before))]
 
+    # TODO: It seems like patches and what-if dags might not be in the same order, investigate tomorrow
     patches = st.session_state.ANALYSIS_RESULT.what_if_patches
     for variant_left, variant_right in zip(range(0, len(patches), 2), range(1, len(patches) + 1, 2)):
         left, right = st.columns(2)
