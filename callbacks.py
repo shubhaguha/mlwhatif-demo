@@ -230,24 +230,24 @@ def get_dags(name):
                 st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])]
 
 
-def render_cytoscape(dag, key):
+def render_cytoscape(dag, key, height):
     if dag:
         cytoscape_data, stylesheet = render_graph3(dag)
-        return cytoscape(cytoscape_data, stylesheet, layout={"name": "dagre"}, key=key)
+        return cytoscape(cytoscape_data, stylesheet, layout={"name": "dagre"}, key=key, height=height)
 
 
-def render_dag_slot(name, dag, key):
+def render_dag_slot(name, dag, key,  height='300px'):
     if name == "Original":
         if st.session_state.DAG_EXTRACTION_RESULT:
-            render_cytoscape(dag, key)
+            render_cytoscape(dag, key, height)
             st.write("Here is a description of what the original DAG is")
     elif name == "Merging":
         if st.session_state.ANALYSIS_RESULT:
-            render_cytoscape(dag, key)
+            render_cytoscape(dag, key, height)
         st.write("Here is a description of what the merged DAG is")
     else:
         if st.session_state.ANALYSIS_RESULT:
-            render_cytoscape(dag, key)
+            render_cytoscape(dag, key, height)
         st.write(f"Here is a description of what the {name} is")
 
 
@@ -255,7 +255,7 @@ def render_full_size_dag(stage_name):
     st.markdown(main_description[stage_name])
     if st.session_state.DAG_EXTRACTION_RESULT:
         dag = get_dags(stage_name)[0]
-        render_dag_slot(stage_name, dag, f"full-size-{stage_name}")
+        render_dag_slot(stage_name, dag, f"full-size-{stage_name}", height='800px')
 
 
 def render_dag_comparison(before, after):
@@ -300,7 +300,7 @@ def render_variant_slot(after, before, dags_after, dags_before, variant_index, c
                 render_dag_slot(after, dags_after[variant_index], f"after-{after}-{variant_index}")
 
 
-def render_patches(variant_patches):
+def render_patches(variant_patches, key=None):
     patch_names = []
     patch_analyses = []
     patch_descriptions = []

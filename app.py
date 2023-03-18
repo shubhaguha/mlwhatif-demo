@@ -238,6 +238,6 @@ st.markdown("## How it works")
 # with st.expander("How it works"):
 # TODO: for me, there are random refreshes sometimes. Then an expanser makes the user experience even worse.
 #  However, if others have the same refresh issues, we should try to fix them
-dag_choice = st.radio("", st.session_state['optimization_steps'], horizontal=True)
+dag_choice = st.radio("", st.session_state['optimization_steps'], horizontal=True, key="refresh-bugfix-key")
 
 st.session_state['dag_mapping'][dag_choice]()
