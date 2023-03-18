@@ -1,3 +1,5 @@
+from copy import copy
+
 import streamlit as st
 from fairlearn.metrics import MetricFrame
 from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
@@ -7,6 +9,7 @@ from mlwhatif.visualisation._visualisation import get_final_optimized_combined_c
     get_original_simple_dag, get_colored_simple_dags
 from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
+from threadpoolctl import threadpool_limits
 
 from callbacks import analyze_pipeline, get_report, render_graph3, scan_pipeline, \
     estimate_pipeline_analysis, render_dag_comparison, render_patches, render_full_size_dag
@@ -123,23 +126,26 @@ if st.sidebar.checkbox("Operator Impact"):
     preproc = OperatorImpact(test_transformers=test_transformers, test_selections=test_selections)
     st.session_state.analyses["preproc"] = preproc
 
-if st.sidebar.checkbox("Data Cleaning"):
+if st.sidebar.checkbox("Data Cleaning", key="data_cleaning"):
     # columns_with_error: dict[str or None, ErrorType] or List[Tuple[str, ErrorType]]
     labels_ui_col = "LABELS"
     columns_with_error = {}
-    selected_columns = st.sidebar.multiselect("Columns with errors", pipeline_columns + [labels_ui_col])
+    selected_columns = st.sidebar.multiselect("Columns with errors", pipeline_columns + [labels_ui_col],
+                                              key="data_cleaning_columns")
     for column in selected_columns:
         columns_with_error[column] = st.sidebar.selectbox(
-            column, ErrorType.__members__.values(), format_func=lambda m: m.value)
+            column, ErrorType.__members__.values(), format_func=lambda m: m.value,
+            key=f"data_cleaning_columns_{column}")
 
     # __init__
     columns_with_error_with_label_formatting = {}
     for column_name, error_name in columns_with_error.items():
         if column_name == labels_ui_col:
-            columns_with_error_with_label_formatting[None] = error_name
+            columns_with_error_with_label_formatting[None] = copy(error_name)
         else:
             columns_with_error_with_label_formatting[column_name] = error_name
-    cleanlearn = DataCleaning(columns_with_error=columns_with_error_with_label_formatting)
+    print(str(columns_with_error_with_label_formatting))
+    cleanlearn = DataCleaning(columns_with_error=copy(columns_with_error_with_label_formatting))
     st.session_state.analyses["cleanlearn"] = cleanlearn
 
 ### === LAYOUT ===
@@ -181,8 +187,20 @@ if run_button:
             st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
                                                                             *st.session_state.analyses.values())
         with st.spinner("Analyzing pipeline..."):
-            st.session_state.ANALYSIS_RESULT = \
+            # from unittest.mock import patch
+            # import sys
+            # environ = copy(sys.environ)
+            # environ['OPENBLAS_NUM_THREADS'] = '1'
+            # environ['NUMEXPR_NUM_THREADS'] = '1'
+            # environ['MKL_NUM_THREADS'] = '1'
+            # with patch.object(sys, 'environ', environ):
+            # with threadpool_limits(limits=1):
+            #     try:
+            analysis_result = \
                 analyze_pipeline(st.session_state.DAG_EXTRACTION_RESULT, *st.session_state.analyses.values())
+                # except Exception as e:
+                #     print(str(e))
+        st.session_state.ANALYSIS_RESULT = analysis_result
         st.balloons()
         print("end")
 
