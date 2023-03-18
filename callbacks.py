@@ -172,6 +172,23 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
     #     source_code = html_file.read()
     # components.html(source_code, height=600)
 
+main_description = {
+    'Original': "The plan extracted from the original pipeline.",
+    'Variants': "The what-if analyses use patches to create each variant the users wants to test.",
+    'Shared': "There is already some work that could be shared between the variants.",
+    'FRP': "Filter Removal Push-Up, the first optimization rule. If we have filters that get removed in some, but"
+           " not all variants, pushing the filter up in all variants where they are present might be beneficial.",
+    'PP': "Projection Push-Up, the second optimization rule.",
+    'FP': "Filter Push-Up, the third optimization rule.",
+    'UDF': "UDF Split-Reuse, the fourth optimization rule. If we apply expensive UDFs repeatedly to large fractions of "
+           "the input data, for example to test the "
+           "robustness against data corruptions, applying it just once to all data and then sampling from the result"
+           " might be beneficial.",
+    'Merging': "Finally, we merge all variants into one combined execution plan, using common subexpression "
+               "elimination.",
+    'Done': "The combined plan is ready for execution now.",
+}
+
 
 def get_dags(name):
     if name == "Original":
@@ -207,7 +224,7 @@ def get_dags(name):
             return get_colored_simple_dags(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages['4-optimize_patches_3_UdfSplitAndReuse'],
                 with_reuse_coloring=True)
-    elif name == "Merging":
+    elif name in {"Merging", "Done"}:
         if st.session_state.ANALYSIS_RESULT:
             return [get_final_optimized_combined_colored_simple_dag(
                 st.session_state.ANALYSIS_RESULT.intermediate_stages["4-optimize_patches_3_UdfSplitAndReuse"])]
@@ -235,12 +252,14 @@ def render_dag_slot(name, dag, key):
 
 
 def render_full_size_dag(stage_name):
+    st.markdown(main_description[stage_name])
     if st.session_state.DAG_EXTRACTION_RESULT:
         dag = get_dags(stage_name)[0]
         render_dag_slot(stage_name, dag, f"full-size-{stage_name}")
 
 
 def render_dag_comparison(before, after):
+    st.markdown(main_description[after])
     dags_before = get_dags(before)
     dags_after = get_dags(after)
     if len(dags_before) == 1:

@@ -33,6 +33,23 @@ if 'ESTIMATION_RESULT' not in st.session_state:
 if 'analyses' not in st.session_state:
     st.session_state['analyses'] = {}
 
+# The two lines below are for trying to fix some refresh bugs, it probably is not necessary to store this in the state
+if 'dag_mapping' not in st.session_state:
+    st.session_state['dag_mapping'] = {
+        "Original": lambda: render_full_size_dag("Original"),
+        "Variants": lambda: render_dag_comparison("Original", "Variants"),
+        "Shared": lambda: render_dag_comparison("Variants", "Shared"),
+        "FRP": lambda: render_dag_comparison("Shared", "FRP"),
+        "PP": lambda: render_dag_comparison("FRP", "PP"),
+        "FP": lambda: render_dag_comparison("PP", "FP"),
+        "UDF": lambda: render_dag_comparison("FP", "UDF"),
+        "Merging": lambda: render_dag_comparison("UDF", "Merging"),
+        "Done": lambda: render_full_size_dag("Done"),
+    }
+
+if 'optimization_steps' not in st.session_state:
+    st.session_state['optimization_steps'] = list(st.session_state['dag_mapping'].keys())
+
 st.set_page_config(page_title="mlwhatif", page_icon="🧐", layout="wide")
 st.title("`mlwhatif` demo")
 # with st.echo():
@@ -214,23 +231,13 @@ with results_container:
             st.subheader(analysis.__class__.__name__)
             st.dataframe(report)
 
-dag_mapping = {
-    "Original": lambda: render_full_size_dag("Original"),
-    "Variants": lambda: render_dag_comparison("Original", "Variants"),
-    "Shared": lambda: render_dag_comparison("Variants", "Shared"),
-    "FRP": lambda: render_dag_comparison("Shared", "FRP"),
-    "PP": lambda: render_dag_comparison("FRP", "PP"),
-    "FP": lambda: render_dag_comparison("PP", "FP"),
-    "UDF": lambda: render_dag_comparison("FP", "UDF"),
-    "Merging": lambda: render_dag_comparison("UDF", "Merging"),
-    "Done": lambda: render_full_size_dag("Merged"),
-}
-
-# st.markdown("""---""")
-# st.markdown("## How it works")
+st.markdown("""---""")
+st.markdown("## How it works")
 
 # TODO: Expander or not?
-with st.expander("How it works"):
-    dag_choice = st.radio("", list(dag_mapping.keys()), horizontal=True)
+# with st.expander("How it works"):
+# TODO: for me, there are random refreshes sometimes. Then an expanser makes the user experience even worse.
+#  However, if others have the same refresh issues, we should try to fix them
+dag_choice = st.radio("", st.session_state['optimization_steps'], horizontal=True)
 
-    dag_mapping[dag_choice]()
+st.session_state['dag_mapping'][dag_choice]()
