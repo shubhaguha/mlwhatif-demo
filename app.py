@@ -63,10 +63,10 @@ st.title("`mlwhatif` demo")
 st.sidebar.title("Configuration")
 
 # Pipeline
-pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()))
+pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()), key="pipeline-selection")
 pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
 pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
-if st.sidebar.button("Load source code"):
+if st.sidebar.button("Load source code", key="source-code-loading"):
     with open(pipeline_filename) as f:
         st.session_state['PIPELINE_SOURCE_CODE'] = f.read()
     st.session_state['ANALYSIS_RESULT'] = None
@@ -75,20 +75,22 @@ if st.sidebar.button("Load source code"):
     st.session_state['ESTIMATION_RESULT'] = None
 # pipeline_num_lines = len(st.session_state['PIPELINE_SOURCE_CODE'].splitlines())
 code_has_changed = st.session_state.PIPELINE_SOURCE_CODE != st.session_state.PIPELINE_SOURCE_CODE_PREV_RUN
-scan_button = st.sidebar.button("Run and Scan Pipeline", disabled=not code_has_changed)
+scan_button = st.sidebar.button("Run and Scan Pipeline", disabled=not code_has_changed, key="scan-button")
 
 # What-if Analyses
-if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
+if st.sidebar.checkbox("Data Corruption", key="enable-corrutions"):  # a.k.a. robustness
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
     column_to_corruption = {}
-    selected_columns = st.sidebar.multiselect("Columns to corrupt", pipeline_columns)
+    selected_columns = st.sidebar.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns")
     for column in selected_columns:
         column_to_corruption[column] = st.sidebar.selectbox(
-            column, CorruptionType.__members__.values(), format_func=lambda m: m.value)
+            column, CorruptionType.__members__.values(), format_func=lambda m: m.value,
+            key=f"corruption-columns-{column}")
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
     corruption_percentages = st.sidebar.multiselect("Corruption percentages", list(range(0, 101, 10)),
-                                                    format_func=lambda i: f"{i}%")
+                                                    format_func=lambda i: f"{i}%",
+                                                    key="corruption-percentages")
     # corruption_percentages = []
     # num = st.sidebar.number_input(
     #     "Corruption percentage", min_value=0.0, max_value=1.0, step=0.01, key=0)
@@ -98,7 +100,7 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
     #                                   max_value=1.0, step=0.01, key=len(corruption_percentages))
 
     # also_corrupt_train: bool = False):
-    also_corrupt_train = st.sidebar.checkbox("Also corrupt train")
+    also_corrupt_train = st.sidebar.checkbox("Also corrupt train", key="corruption-train")
 
     # __init__
     robustness = DataCorruption(column_to_corruption=list(column_to_corruption.items()),
@@ -106,12 +108,12 @@ if st.sidebar.checkbox("Data Corruption"):  # a.k.a. robustness
                                 also_corrupt_train=also_corrupt_train)
     st.session_state.analyses["robustness"] = robustness
 
-if st.sidebar.checkbox("Operator Impact"):
+if st.sidebar.checkbox("Operator Impact", key="operator-impact"):
     # test_transformers=True
-    test_transformers = st.sidebar.checkbox("Test transformers", value=True)
+    test_transformers = st.sidebar.checkbox("Test transformers", value=True, key="operator-impact-transformers")
 
     # test_selections=False
-    test_selections = st.sidebar.checkbox("Test selections")
+    test_selections = st.sidebar.checkbox("Test selections", key="operator-impact-selections")
 
     # restrict_to_linenos: List[int] or None = None
     # line_numbers = []
@@ -244,6 +246,11 @@ st.markdown("## How it works")
 # with st.expander("How it works"):
 # TODO: for me, there are random refreshes sometimes. Then an expanser makes the user experience even worse.
 #  However, if others have the same refresh issues, we should try to fix them
-dag_choice = st.radio("", st.session_state['optimization_steps'], horizontal=True, key="refresh-bugfix-key")
+# The below code prevents the reloads from being too noticeable
+if 'optimization_step_selection_index' not in st.session_state:
+    st.session_state['optimization_step_selection_index'] = 0
+dag_choice = st.radio("", st.session_state['optimization_steps'], horizontal=True, key="refresh-bugfix-key",
+                      index=st.session_state['optimization_step_selection_index'])
+st.session_state['optimization_step_selection_index'] = st.session_state['optimization_steps'].index(dag_choice)
 
 st.session_state['dag_mapping'][dag_choice]()

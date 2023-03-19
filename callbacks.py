@@ -100,15 +100,18 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
     # G = nx.relabel_nodes(G, get_new_node_label)
     cytoscape_data = nx.cytoscape_data(graph)["elements"]
 
+    # TODO: Figure out how to make font wide to make it more readable
     stylesheet = [{
         'selector': 'node',
         'css': {
             'content': 'data(operator_name)',
             'text-valign': 'center',
             'color': 'white',
-            'text-outline-width': 2,
+            'text-outline-width': '2',
             'text-outline-color': 'black',
-            'background-color': 'data(fillcolor)'
+            'background-color': 'data(fillcolor)',
+            'border-color': 'black',
+            'border-width': '2px',
         }
     },
         {
@@ -118,7 +121,9 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
                 'line-color': 'black',
                 'target-arrow-color': 'black',
                 'source-arrow-color': 'black',
-                'text-outline-color': 'black'
+                'text-outline-color': 'black',
+                'border-color': 'black',
+                'border-width': '2px',
             }
         },
         {
