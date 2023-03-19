@@ -134,47 +134,8 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
             }
         },
     ]
-    # elements = cytoscape_data["nodes"] + cytoscape_data["edges"]
-    # print(elements)
-    # cytoscapeobj = ipycytoscape.CytoscapeWidget()
-    # cytoscapeobj.graph.add_graph_from_networkx(plan, directed=True)
 
     return cytoscape_data, stylesheet
-    # nt = Network()
-    # nt.from_nx(G)
-    # nt.show("graph.html")
-    #
-    # with open("graph.html", "r", encoding="utf-8") as html_file:
-    #     source_code = html_file.read()
-    #     # components.html(source_code, height=1200, width=1000)
-    # components.html(source_code, height=600)
-
-    # fig, _ = plt.subplots()
-    # nx.draw(G, pos, with_labels=True)
-    # st.pyplot(fig)
-
-    # agraph = to_agraph(G)
-    # agraph.layout(prog='dot')
-    # agraph.draw("graph.dot")
-    #
-    # with open("graph.dot", "r", encoding="utf-8") as dot_file:
-    #     dot_content = dot_file.read()
-    # st.graphviz_chart(dot_content, use_container_width=True)
-
-    # nt = Network()
-    # nt.from_DOT(agraph)
-    # nt.show("graph.html")
-    #
-    # with open("graph.html", "r", encoding="utf-8") as html_file:
-    #     source_code = html_file.read()
-    #     # components.html(source_code, height=1200, width=1000)
-    # components.html(source_code, height=600)
-
-    # # Now we need to somehow visualize this
-    # agraph.draw("graph.html")
-    # with open("graph.html", "r", encoding="utf-8") as html_file:
-    #     source_code = html_file.read()
-    # components.html(source_code, height=600)
 
 
 main_description = {

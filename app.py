@@ -5,14 +5,10 @@ from fairlearn.metrics import MetricFrame
 from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
 from mlwhatif.analysis._data_corruption import DataCorruption, CorruptionType
 from mlwhatif.analysis._operator_impact import OperatorImpact
-from mlwhatif.visualisation._visualisation import get_final_optimized_combined_colored_simple_dag, \
-    get_original_simple_dag, get_colored_simple_dags
-from st_cytoscape import cytoscape
 from streamlit_ace import st_ace
-from threadpoolctl import threadpool_limits
 
-from callbacks import analyze_pipeline, get_report, render_graph3, scan_pipeline, \
-    estimate_pipeline_analysis, render_dag_comparison, render_patches, render_full_size_dag
+from callbacks import analyze_pipeline, get_report, scan_pipeline, \
+    estimate_pipeline_analysis, render_dag_comparison, render_full_size_dag
 from constants import PIPELINE_CONFIG
 
 if 'PIPELINE_SOURCE_CODE_PREV_RUN' not in st.session_state:
