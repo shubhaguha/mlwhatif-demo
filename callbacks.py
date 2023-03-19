@@ -330,7 +330,28 @@ def render_dag_comparison(before, after):
 
     # TODO: It seems like patches and what-if dags might not be in the same order, investigate tomorrow
     patches = st.session_state.ANALYSIS_RESULT.what_if_patches
-    for variant_left, variant_right in zip(range(0, len(patches), 2), range(1, len(patches) + 1, 2)):
+
+    # Pagination
+    elements_per_page = 4
+    if f"{after}-page_number" not in st.session_state:
+        st.session_state[f"{after}-page_number"] = 0
+    last_page = len(patches) // elements_per_page
+    prev, _, next = st.columns([1, 10, 1])
+    if next.button("Next"):
+        if st.session_state[f"{after}-page_number"] + 1 > last_page:
+            st.session_state[f"{after}-page_number"] = 0
+        else:
+            st.session_state[f"{after}-page_number"] += 1
+    if prev.button("Previous"):
+        if st.session_state[f"{after}-page_number"] - 1 < 0:
+            st.session_state[f"{after}-page_number"] = last_page
+        else:
+            st.session_state[f"{after}-page_number"] -= 1
+    # Get start and end indices of the next page of the dataframe
+    start_idx = st.session_state[f"{after}-page_number"] * elements_per_page
+    end_idx = (1 + st.session_state[f"{after}-page_number"]) * elements_per_page
+
+    for variant_left, variant_right in zip(range(start_idx, end_idx, 2), range(start_idx+1, end_idx + 1, 2)):
         left, right = st.columns(2)
         with left:
             st.markdown(f"### Variant {variant_left}")

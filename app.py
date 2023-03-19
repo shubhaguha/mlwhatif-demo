@@ -38,7 +38,7 @@ if 'analyses' not in st.session_state:
 
 # The two lines below are for trying to fix some refresh bugs, it probably is not necessary to store this in the state
 if 'dag_mapping' not in st.session_state:
-    st.session_state['dag_mapping'] = {
+    dag_mapping = {
         "Original": lambda: render_full_size_dag("Original"),
         "Variants": lambda: render_dag_comparison("Original", "Variants"),
         "Shared": lambda: render_dag_comparison("Variants", "Shared"),
@@ -49,9 +49,9 @@ if 'dag_mapping' not in st.session_state:
         "Merging": lambda: render_dag_comparison("UDF", "Merging"),
         "Done": lambda: render_full_size_dag("Done"),
     }
-
-if 'optimization_steps' not in st.session_state:
-    st.session_state['optimization_steps'] = list(st.session_state['dag_mapping'].keys())
+    optimization_steps = list(dag_mapping.keys())
+    st.session_state['dag_mapping'] = dag_mapping
+    st.session_state['optimization_steps'] = optimization_steps
 
 st.set_page_config(page_title="mlwhatif", page_icon="🧐", layout="wide")
 st.title("`mlwhatif` demo")
@@ -78,17 +78,18 @@ code_has_changed = st.session_state.PIPELINE_SOURCE_CODE != st.session_state.PIP
 scan_button = st.sidebar.button("Run and Scan Pipeline", disabled=not code_has_changed, key="scan-button")
 
 # What-if Analyses
-if st.sidebar.checkbox("Data Corruption", key="enable-corrutions"):  # a.k.a. robustness
+with st.sidebar.expander("Robustness"):
+    data_corruption_active = st.checkbox("Enable analysis", key="enable-corrutions")  # a.k.a. robustness
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
     column_to_corruption = {}
-    selected_columns = st.sidebar.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns")
+    selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns")
     for column in selected_columns:
-        column_to_corruption[column] = st.sidebar.selectbox(
+        column_to_corruption[column] = st.selectbox(
             column, CorruptionType.__members__.values(), format_func=lambda m: m.value,
             key=f"corruption-columns-{column}")
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
-    corruption_percentages = st.sidebar.multiselect("Corruption percentages", list(range(0, 101, 10)),
+    corruption_percentages = st.multiselect("Corruption percentages", list(range(0, 101, 10)),
                                                     format_func=lambda i: f"{i}%",
                                                     key="corruption-percentages")
     # corruption_percentages = []
@@ -100,20 +101,24 @@ if st.sidebar.checkbox("Data Corruption", key="enable-corrutions"):  # a.k.a. ro
     #                                   max_value=1.0, step=0.01, key=len(corruption_percentages))
 
     # also_corrupt_train: bool = False):
-    also_corrupt_train = st.sidebar.checkbox("Also corrupt train", key="corruption-train")
+    also_corrupt_train = st.checkbox("Also corrupt train", key="corruption-train")
 
     # __init__
-    robustness = DataCorruption(column_to_corruption=list(column_to_corruption.items()),
-                                corruption_percentages=[p / 100. for p in corruption_percentages],
-                                also_corrupt_train=also_corrupt_train)
-    st.session_state.analyses["robustness"] = robustness
+    if data_corruption_active:
+        robustness = DataCorruption(column_to_corruption=list(column_to_corruption.items()),
+                                    corruption_percentages=[p / 100. for p in corruption_percentages],
+                                    also_corrupt_train=also_corrupt_train)
+        st.session_state.analyses["robustness"] = robustness
+    else:
+        st.session_state.analyses.pop("robustness", None)
 
-if st.sidebar.checkbox("Operator Impact", key="operator-impact"):
+with st.sidebar.expander("Operator Impact"):
+    operator_impact_active = st.checkbox("Enable analysis", key="operator-impact")
     # test_transformers=True
-    test_transformers = st.sidebar.checkbox("Test transformers", value=True, key="operator-impact-transformers")
+    test_transformers = st.checkbox("Test transformers", value=True, key="operator-impact-transformers")
 
     # test_selections=False
-    test_selections = st.sidebar.checkbox("Test selections", key="operator-impact-selections")
+    test_selections = st.checkbox("Test selections", key="operator-impact-selections")
 
     # restrict_to_linenos: List[int] or None = None
     # line_numbers = []
@@ -125,17 +130,21 @@ if st.sidebar.checkbox("Operator Impact", key="operator-impact"):
     #                                   step=1, key=len(line_numbers))
 
     # __init__
-    preproc = OperatorImpact(test_transformers=test_transformers, test_selections=test_selections)
-    st.session_state.analyses["preproc"] = preproc
+    if operator_impact_active:
+        preproc = OperatorImpact(test_transformers=test_transformers, test_selections=test_selections)
+        st.session_state.analyses["preproc"] = preproc
+    else:
+        st.session_state.analyses.pop("preproc", None)
 
-if st.sidebar.checkbox("Data Cleaning", key="data_cleaning"):
-    # columns_with_error: dict[str or None, ErrorType] or List[Tuple[str, ErrorType]]
+# columns_with_error: dict[str or None, ErrorType] or List[Tuple[str, ErrorType]]
+with st.sidebar.expander("Data Cleaning"):
+    data_cleaning_active = st.checkbox("Enable analysis", key="data_cleaning")
     labels_ui_col = "LABELS"
     columns_with_error = {}
-    selected_columns = st.sidebar.multiselect("Columns with errors", pipeline_columns + [labels_ui_col],
-                                              key="data_cleaning_columns")
+    selected_columns = st.multiselect("Columns with errors", pipeline_columns + [labels_ui_col],
+                                      key="data_cleaning_columns")
     for column in selected_columns:
-        columns_with_error[column] = st.sidebar.selectbox(
+        columns_with_error[column] = st.selectbox(
             column, ErrorType.__members__.values(), format_func=lambda m: m.value,
             key=f"data_cleaning_columns_{column}")
 
@@ -146,9 +155,12 @@ if st.sidebar.checkbox("Data Cleaning", key="data_cleaning"):
             columns_with_error_with_label_formatting[None] = copy(error_name)
         else:
             columns_with_error_with_label_formatting[column_name] = error_name
-    cleanlearn = DataCleaning(columns_with_error=copy(columns_with_error_with_label_formatting),
-                              parallelism=False)
-    st.session_state.analyses["cleanlearn"] = cleanlearn
+    if data_cleaning_active:
+        cleanlearn = DataCleaning(columns_with_error=copy(columns_with_error_with_label_formatting),
+                                  parallelism=False)
+        st.session_state.analyses["cleanlearn"] = cleanlearn
+    else:
+        st.session_state.analyses.pop("cleanlearn", None)
 
 ### === LAYOUT ===
 left, right = st.columns(2)
@@ -234,9 +246,15 @@ with results_container:
                     # TODO: Better visualisation or remove MetricFrame from healthcare pipeline
                     # Try `config.dataFrameSerialization = "arrow"` in case pyarrow's df serialization is better
                     report[column] = report.apply(lambda row: str(row[column].by_group), axis=1)
-            # TODO: Map mislabel cleaning None back to LABELS?
+            # TODO: Map mislabel cleaning None back to LABELS
 
-            st.subheader(analysis.__class__.__name__)
+            if type(analysis) == DataCorruption:
+                header = "Robustness"
+            elif type(analysis) == OperatorImpact:
+                header = "Operator Impact"
+            else:
+                header = "Data Cleaning"
+            st.subheader(header)
             st.dataframe(report)
 
 st.markdown("""---""")
