@@ -144,8 +144,8 @@ if st.sidebar.checkbox("Data Cleaning", key="data_cleaning"):
             columns_with_error_with_label_formatting[None] = copy(error_name)
         else:
             columns_with_error_with_label_formatting[column_name] = error_name
-    print(str(columns_with_error_with_label_formatting))
-    cleanlearn = DataCleaning(columns_with_error=copy(columns_with_error_with_label_formatting))
+    cleanlearn = DataCleaning(columns_with_error=copy(columns_with_error_with_label_formatting),
+                              parallelism=False)
     st.session_state.analyses["cleanlearn"] = cleanlearn
 
 ### === LAYOUT ===
@@ -182,24 +182,12 @@ if estimate_button:
 
 if run_button:
     with results_container:
-        print("start")
         with st.spinner("Estimating analysis cost..."):
             st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
                                                                             *st.session_state.analyses.values())
         with st.spinner("Analyzing pipeline..."):
-            # from unittest.mock import patch
-            # import sys
-            # environ = copy(sys.environ)
-            # environ['OPENBLAS_NUM_THREADS'] = '1'
-            # environ['NUMEXPR_NUM_THREADS'] = '1'
-            # environ['MKL_NUM_THREADS'] = '1'
-            # with patch.object(sys, 'environ', environ):
-            # with threadpool_limits(limits=1):
-            #     try:
             analysis_result = \
                 analyze_pipeline(st.session_state.DAG_EXTRACTION_RESULT, *st.session_state.analyses.values())
-                # except Exception as e:
-                #     print(str(e))
         st.session_state.ANALYSIS_RESULT = analysis_result
         st.balloons()
         print("end")
