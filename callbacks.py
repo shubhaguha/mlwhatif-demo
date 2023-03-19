@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 from example_pipelines.healthcare import custom_monkeypatching
 from mlwhatif import PipelineAnalyzer
 from mlwhatif.execution._patches import AppendNodeAfterOperator, DataProjection, OperatorReplacement, DataTransformer, \
-    DataFiltering
+    DataFiltering, ModelPatch
 from mlwhatif.visualisation._visualisation import get_original_simple_dag, get_colored_simple_dags, \
     get_final_optimized_combined_colored_simple_dag
 from pyvis.network import Network
@@ -327,6 +327,10 @@ def render_patches(variant_patches, key=None):
                     description += ' on train side'
                 else:
                     description += ' on test side'
+                patch_descriptions.append(description)
+            elif type(patch) == ModelPatch:
+                patch_names.append("Model")
+                description = f"{patch.replace_with_node.details.description}"
                 patch_descriptions.append(description)
             # TODO: Model patches
             else:

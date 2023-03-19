@@ -190,7 +190,6 @@ if run_button:
                 analyze_pipeline(st.session_state.DAG_EXTRACTION_RESULT, *st.session_state.analyses.values())
         st.session_state.ANALYSIS_RESULT = analysis_result
         st.balloons()
-        print("end")
 
 ### === MAIN CONTENT ===
 with pipeline_code_container:
