@@ -59,7 +59,13 @@ st.title("`mlwhatif` demo")
 st.sidebar.title("Configuration")
 
 # Pipeline
-pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()), key="pipeline-selection")
+if 'pipeline_file_name_index' not in st.session_state:
+    st.session_state['pipeline_file_name_index'] = 0
+pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()), key="pipeline-selection",
+                                index=st.session_state['pipeline_file_name_index'])
+st.session_state['pipeline_file_name_index'] = list(PIPELINE_CONFIG.keys()).index(pipeline)
+
+
 pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
 pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
 if st.sidebar.button("Load source code", key="source-code-loading"):
