@@ -139,20 +139,30 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
 
 
 main_description = {
-    'Original': "The plan extracted from the original pipeline.",
+    'Original': "The plan extracted from the original pipeline. You can click on nodes to learn more about them.",
     'Variants': "The what-if analyses use patches to create each variant the users wants to test.",
-    'Shared': "There is already some work that could be shared between the variants.",
+    'Shared': "There is already some work that could be shared between the variants. This shared work is highlighted "
+              "in black in the plans on the right.",
     'FRP': "Filter Removal Push-Up, the first optimization rule. If we have filters that get removed in some, but"
-           " not all variants, pushing the filter up in all variants where they are present might be beneficial.",
-    'PP': "Projection Push-Up, the second optimization rule.",
-    'FP': "Filter Push-Up, the third optimization rule.",
+           " not all variants, pushing the filter up in all variants where they are present might be beneficial. "
+           "Work shared between multiple variants is marked in black. This optimization is specifically for Filter "
+           "Removal Patches. If the optimization is worth it, according to our cost-based heuristics, then filters"
+           "that are removed in some variants can be pushed up in all variants, to have more shared work across all "
+           "variants. This is visible my more shared work, a.k.a. more black nodes, in the respective variants.  ",
+    'PP': "Projection Push-Up, the second optimization rule. Work shared between multiple variants is marked in black. "
+          "By pushing up DataProjections and DataEstimators, we can increase the amount of sharable work between the "
+          "variants.",
+    'FP': "Filter Push-Up, the third optimization rule. Work shared between multiple variants is marked in black. By "
+          "pushing up Data Filter Patches, we can increase the amount of sharable work between the variants.",
     'UDF': "UDF Split-Reuse, the fourth optimization rule. If we apply expensive UDFs repeatedly to large fractions of "
            "the input data, for example to test the "
            "robustness against data corruptions, applying it just once to all data and then sampling from the result"
-           " might be beneficial.",
+           " might be beneficial, if the UDF is applied to large enough fractions of the data. Then, the optimisation "
+           "results in `corrupt x%' nodes being split up into one corrupt everything node and a second one that samples "
+           "corrupted data from the first node. Work shared between multiple variants is marked in black.",
     'Merging': "Finally, we merge all variants into one combined execution plan, using common subexpression "
-               "elimination.",
-    'Done': "The combined plan is ready for execution now.",
+               "elimination. Work shared between multiple variants is marked in black.",
+    'Done': "The combined plan is ready for execution now. Work shared between multiple variants is marked in black.",
 }
 
 
@@ -214,20 +224,23 @@ def render_cytoscape(dag, key, height):
                          selection_type='single')
 
 
-def render_dag_slot(name, dag, key, height='300px'):
+def render_dag_slot(name, dag, key, height='300px', description=True):
     selected = {'nodes': []}
     if name == "Original":
         if st.session_state.DAG_EXTRACTION_RESULT:
             selected = render_cytoscape(dag, key, height)
-            st.write("Here is a description of what the original DAG is")
+            if description is True:
+                st.write("The plan extracted from the original pipeline for comparison.")
     elif name == "Merging":
         if st.session_state.ANALYSIS_RESULT:
             selected = render_cytoscape(dag, key, height)
-        st.write("Here is a description of what the merged DAG is")
+        if description is True:
+            st.write("The final combined plan for comparison.")
     else:
         if st.session_state.ANALYSIS_RESULT:
             selected = render_cytoscape(dag, key, height)
-        st.write(f"Here is a description of what the {name} is")
+        if description is True:
+            st.write(f"Here is a description of what the {name} is")
     return selected
 
 
@@ -237,7 +250,8 @@ def render_full_size_dag(stage_name):
         visualization_dag, internal_dag = get_dags(stage_name)
         visualization_dag = visualization_dag[0]
         internal_dag = internal_dag[0]
-        selected = render_dag_slot(stage_name, visualization_dag, f"full-size-{stage_name}", height='800px')
+        selected = render_dag_slot(stage_name, visualization_dag, f"full-size-{stage_name}", height='800px',
+                                   description=False)
         if len(selected['nodes']) != 0:
             render_dag_node_details(internal_dag, selected, width=1500)
         else:
@@ -251,8 +265,9 @@ def render_dag_node_details(internal_dag, selected, width=300):
                          if dag_node.node_id == selected_id]
         assert len(selected_node) == 1
         selected_node = selected_node[0]
-        attribute_names = ['Operator Type', "Source Code", "Description",
-                           "Line Number", "Column Offset", "End Line Number", "End Column Offset"]
+        attribute_names = ['Operator Type', "Source Code", "Description", "Runtime", "Shape",
+                           "Line Number", "Column Offset", "End Line Number", "End Column Offset",
+                           ]
         if selected_node.optional_code_info is not None:
             source_code = selected_node.optional_code_info.source_code
             lineno = str(selected_node.optional_code_info.code_reference.lineno)
@@ -268,10 +283,12 @@ def render_dag_node_details(internal_dag, selected, width=300):
         attribute_values = [selected_node.operator_info.operator.value,
                             source_code,
                             selected_node.details.description,
+                            f"{selected_node.details.optimizer_info.runtime:.2f} ms",
+                            f"{selected_node.details.optimizer_info.shape}",
                             lineno,
                             col_offset,
                             end_lineno,
-                            end_col_offset
+                            end_col_offset,
                             ]
         info_df = pandas.DataFrame({'Attribute': attribute_names, 'Value': attribute_values})
         st.dataframe(info_df, width=width)
