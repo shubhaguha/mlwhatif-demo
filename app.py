@@ -227,7 +227,9 @@ if run_button:
         with st.spinner("Estimating analysis cost..."):
             st.session_state.ESTIMATION_RESULT = estimate_pipeline_analysis(st.session_state.DAG_EXTRACTION_RESULT,
                                                                             *st.session_state.analyses.values())
-        with st.spinner("Analyzing pipeline..."):
+            waiting_message = f"Estimated total runtime is " \
+                              f"{st.session_state.ESTIMATION_RESULT.runtime_info.what_if_optimized_estimated:.2f} ms."
+        with st.spinner(f"Analyzing pipeline... {waiting_message}"):
             analysis_result = \
                 analyze_pipeline(st.session_state.DAG_EXTRACTION_RESULT, *st.session_state.analyses.values())
         st.session_state.ANALYSIS_RESULT = analysis_result
