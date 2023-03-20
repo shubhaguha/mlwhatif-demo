@@ -312,7 +312,7 @@ def render_dag_comparison(before, after):
     end_idx = (1 + st.session_state[f"{after}-page_number"]) * elements_per_page
 
     for variant_left, variant_right in zip(range(start_idx, end_idx, 2), range(start_idx + 1, end_idx, 2)):
-        left, right = st.co lumns(2)
+        left, right = st.columns(2)
         if variant_left < len(patches):
             with left:
                 st.markdown(f"### Variant {variant_left}")
