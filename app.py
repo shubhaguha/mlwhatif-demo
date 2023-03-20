@@ -247,26 +247,30 @@ with pipeline_code_container:
         st.code(st.session_state.DAG_EXTRACTION_RESULT.captured_orig_pipeline_stdout)
 
 with results_container:
+    runtime_messages = ""
     if st.session_state.RUNTIME_ORIG:
         runtime_orig = st.session_state.RUNTIME_ORIG
         # TODO: Should we use humanize here?
         #  from humanize import naturalsize
         #  naturaldelta or something like that
-        st.write(f"Measured runtime of original pipeline is {runtime_orig:.2f} ms.")
+        runtime_messages += f"The runtime of the original pipeline is `{runtime_orig:.2f} ms`.  \n  \n  "
 
     if st.session_state.ESTIMATION_RESULT:
         estimate = st.session_state.ESTIMATION_RESULT
         # TODO: Should we use humanize here?
         #  from humanize import naturalsize
         #  naturaldelta or something like that
-        st.write(f"Estimated total runtime is {estimate.runtime_info.what_if_optimized_estimated:.2f} ms.")
-        st.write("Estimated time saved with our multi-query optimization is "
-                 f"{estimate.runtime_info.what_if_optimization_saving_estimated:.2f} ms.")
+        runtime_messages += (f"The estimated runtime of the configured what-if analyses is "
+                             f"`{estimate.runtime_info.what_if_optimized_estimated:.2f} ms.`  \n "
+                             f"The estimated runtime saved because of our multi-query optimizer is "
+                             f"`{estimate.runtime_info.what_if_optimization_saving_estimated:.2f} ms.`  \n  \n  ")
 
     if st.session_state.ANALYSIS_RESULT:
         for analysis in st.session_state.analyses.values():
             actual_runtime = st.session_state.ANALYSIS_RESULT.runtime_info.what_if_execution
-            st.write(f"Measured runtime of what-if analyses is {actual_runtime:.2f} ms.")
+            runtime_messages += f"The actual runtime of the configured what-if analyses is `{actual_runtime:.2f} ms`." \
+                                f"  \n "
+            st.markdown(runtime_messages)
 
             if analysis in st.session_state.ANALYSIS_RESULT.analysis_to_result_reports:
                 report = get_report(st.session_state.ANALYSIS_RESULT, analysis)
@@ -287,6 +291,8 @@ with results_container:
                     header = "Data Cleaning"
                 st.subheader(header)
                 st.dataframe(report)
+    else:
+        st.markdown(runtime_messages)
 
 st.markdown("""---""")
 st.markdown("## How it works")
