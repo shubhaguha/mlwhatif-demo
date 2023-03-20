@@ -267,12 +267,11 @@ with results_container:
                              f"`{estimate.runtime_info.what_if_optimization_saving_estimated:.2f} ms.`  \n  \n  ")
 
     if st.session_state.ANALYSIS_RESULT:
+        actual_runtime = st.session_state.ANALYSIS_RESULT.runtime_info.what_if_execution
+        runtime_messages += f"The actual runtime of the configured what-if analyses is `{actual_runtime:.2f} ms`." \
+                            f"  \n "
+        st.markdown(runtime_messages)
         for analysis in st.session_state.analyses.values():
-            actual_runtime = st.session_state.ANALYSIS_RESULT.runtime_info.what_if_execution
-            runtime_messages += f"The actual runtime of the configured what-if analyses is `{actual_runtime:.2f} ms`." \
-                                f"  \n "
-            st.markdown(runtime_messages)
-
             if analysis in st.session_state.ANALYSIS_RESULT.analysis_to_result_reports:
                 report = get_report(st.session_state.ANALYSIS_RESULT, analysis)
 
