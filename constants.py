@@ -16,4 +16,8 @@ PIPELINE_CONFIG = {
         "filename": os.path.join(str(get_project_root()), "pipelines", "census.py"),
         "columns": ['AGEP', 'WKHP', 'COW', 'SCHL', 'MAR', 'OCCP', 'POBP', 'RELP'],
     },
+    "compas": {
+        "filename": os.path.join(str(get_project_root()), "pipelines", "compas.py"),
+        "columns": ['is_recid', 'c_charge_degree', 'age', 'priors_count'],
+    },
 }

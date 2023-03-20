@@ -1,5 +1,6 @@
 from copy import copy
 
+import pandas
 import streamlit as st
 from fairlearn.metrics import MetricFrame
 from mlwhatif.analysis._data_cleaning import DataCleaning, ErrorType
@@ -278,8 +279,6 @@ with results_container:
                 metrics_frame_columns = report.select_dtypes('object')
                 for column in metrics_frame_columns:
                     if len(report) != 0 and isinstance(report[column].iloc[0], MetricFrame):
-                        # TODO: Better visualisation or remove MetricFrame from healthcare pipeline
-                        # Try `config.dataFrameSerialization = "arrow"` in case pyarrow's df serialization is better
                         def format_metric_frame(row):
                             pandas_df = row[column].by_group.reset_index(drop=False)
                             pandas_groups = pandas_df.iloc[:, 0].tolist()
@@ -289,6 +288,19 @@ with results_container:
                                 results.append(f"'{group}': {value:.3f}")
                             return ", ".join(results)
                         report[column] = report.apply(format_metric_frame, axis=1)
+                for column in list(report.columns):
+                    if "percentage" in column or "lineno" in column:
+                        def format_percentage_column(row):
+                            number = row[column]
+                            if type(number) == float and not pandas.isna(number):
+                                result = str(int(number))
+                            elif type(number) == str:
+                                result = number
+                            else:
+                                result = "<NA>"
+                            return result
+
+                        report[column] = report.apply(format_percentage_column, axis=1)
                 # TODO: Map mislabel cleaning None back to LABELS
 
                 if type(analysis) == DataCorruption:
