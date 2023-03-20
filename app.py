@@ -266,24 +266,25 @@ with results_container:
             actual_runtime = st.session_state.ANALYSIS_RESULT.runtime_info.what_if_execution
             st.write(f"Measured runtime of what-if analyses is {actual_runtime:.2f} ms.")
 
-            report = get_report(st.session_state.ANALYSIS_RESULT, analysis)
+            if analysis in st.session_state.ANALYSIS_RESULT.analysis_to_result_reports:
+                report = get_report(st.session_state.ANALYSIS_RESULT, analysis)
 
-            metrics_frame_columns = report.select_dtypes('object')
-            for column in metrics_frame_columns:
-                if len(report) != 0 and isinstance(report[column].iloc[0], MetricFrame):
-                    # TODO: Better visualisation or remove MetricFrame from healthcare pipeline
-                    # Try `config.dataFrameSerialization = "arrow"` in case pyarrow's df serialization is better
-                    report[column] = report.apply(lambda row: str(row[column].by_group), axis=1)
-            # TODO: Map mislabel cleaning None back to LABELS
+                metrics_frame_columns = report.select_dtypes('object')
+                for column in metrics_frame_columns:
+                    if len(report) != 0 and isinstance(report[column].iloc[0], MetricFrame):
+                        # TODO: Better visualisation or remove MetricFrame from healthcare pipeline
+                        # Try `config.dataFrameSerialization = "arrow"` in case pyarrow's df serialization is better
+                        report[column] = report.apply(lambda row: str(row[column].by_group), axis=1)
+                # TODO: Map mislabel cleaning None back to LABELS
 
-            if type(analysis) == DataCorruption:
-                header = "Robustness"
-            elif type(analysis) == OperatorImpact:
-                header = "Operator Impact"
-            else:
-                header = "Data Cleaning"
-            st.subheader(header)
-            st.dataframe(report)
+                if type(analysis) == DataCorruption:
+                    header = "Robustness"
+                elif type(analysis) == OperatorImpact:
+                    header = "Operator Impact"
+                else:
+                    header = "Data Cleaning"
+                st.subheader(header)
+                st.dataframe(report)
 
 st.markdown("""---""")
 st.markdown("## How it works")

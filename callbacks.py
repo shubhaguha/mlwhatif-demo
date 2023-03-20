@@ -247,7 +247,6 @@ def render_full_size_dag(stage_name):
 def render_dag_node_details(internal_dag, selected, width=300):
     with st.container():
         selected_id = int(selected['nodes'][0])
-        print(str(internal_dag))
         selected_node = [dag_node for dag_node in list(internal_dag.nodes())
                          if dag_node.node_id == selected_id]
         assert len(selected_node) == 1
@@ -312,24 +311,27 @@ def render_dag_comparison(before, after):
     start_idx = st.session_state[f"{after}-page_number"] * elements_per_page
     end_idx = (1 + st.session_state[f"{after}-page_number"]) * elements_per_page
 
-    for variant_left, variant_right in zip(range(start_idx, end_idx, 2), range(start_idx + 1, end_idx + 1, 2)):
-        left, right = st.columns(2)
-        with left:
-            st.markdown(f"### Variant {variant_left}")
-            render_patches(patches[variant_left])
+    for variant_left, variant_right in zip(range(start_idx, end_idx, 2), range(start_idx + 1, end_idx, 2)):
+        left, right = st.co lumns(2)
+        if variant_left < len(patches):
+            with left:
+                st.markdown(f"### Variant {variant_left}")
+                render_patches(patches[variant_left])
         if variant_right < len(patches):
             with right:
                 st.markdown(f"### Variant {variant_right}")
                 render_patches(patches[variant_right])
         columns = st.columns(4)
-        with st.container():
-            render_variant_slot(before, after, dags_before, dags_after, internal_dags_before, internal_dags_after,
-                                variant_left, columns[0:2])
+        if variant_left < len(patches):
+            with st.container():
+                render_variant_slot(before, after, dags_before, dags_after, internal_dags_before, internal_dags_after,
+                                    variant_left, columns[0:2])
         if variant_right < len(patches):
             with st.container():
                 render_variant_slot(before, after, dags_before, dags_after, internal_dags_before, internal_dags_after,
                                     variant_right, columns[2:4])
-        st.markdown("""---""")
+        if variant_left < len(patches):
+            st.markdown("""---""")
 
 
 def render_variant_slot(before, after, dags_before, dags_after, internal_dags_before, internal_dags_after,
@@ -382,7 +384,6 @@ def render_patches(variant_patches, key=None):
                 patch_names.append("Model")
                 description = f"{patch.replace_with_node.details.description}"
                 patch_descriptions.append(description)
-            # TODO: Model patches
             else:
                 patch_names.append(type(patch).__name__)
                 patch_descriptions.append("")
