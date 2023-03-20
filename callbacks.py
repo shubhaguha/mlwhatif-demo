@@ -294,7 +294,7 @@ def render_dag_comparison(before, after):
 
     # Pagination
     elements_per_page = 4
-    if f"{after}-page_number" not in st.session_state:
+    if f"{after}-page_number" not in st.session_state or st.session_state[f"{after}-page_number"] >= len(patches):
         st.session_state[f"{after}-page_number"] = 0
     last_page = len(patches) // elements_per_page
     prev, _, next = st.columns([1, 10, 1])
@@ -312,7 +312,7 @@ def render_dag_comparison(before, after):
     start_idx = st.session_state[f"{after}-page_number"] * elements_per_page
     end_idx = (1 + st.session_state[f"{after}-page_number"]) * elements_per_page
 
-    for variant_left, variant_right in zip(range(start_idx, end_idx, 2), range(start_idx+1, end_idx + 1, 2)):
+    for variant_left, variant_right in zip(range(start_idx, end_idx, 2), range(start_idx + 1, end_idx + 1, 2)):
         left, right = st.columns(2)
         with left:
             st.markdown(f"### Variant {variant_left}")

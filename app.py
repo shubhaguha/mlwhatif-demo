@@ -65,7 +65,6 @@ pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()
                                 index=st.session_state['pipeline_file_name_index'])
 st.session_state['pipeline_file_name_index'] = list(PIPELINE_CONFIG.keys()).index(pipeline)
 
-
 pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
 pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
 if st.sidebar.button("Load source code", key="source-code-loading"):
@@ -81,7 +80,12 @@ scan_button = st.sidebar.button("Run and Scan Pipeline", disabled=not code_has_c
 
 # What-if Analyses
 with st.sidebar.expander("Robustness"):
-    data_corruption_active = st.checkbox("Enable analysis", key="enable-corrutions")  # a.k.a. robustness
+    if '_data_corruption_active' not in st.session_state:
+        st.session_state['_data_corruption_active'] = False
+    data_corruption_active = st.checkbox("Enable analysis", key="enable-corrutions",
+                                         value=st.session_state['_data_corruption_active'])  # a.k.a. robustness
+    st.session_state['_data_corruption_active'] = data_corruption_active
+
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
     column_to_corruption = {}
     selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns")
@@ -92,8 +96,8 @@ with st.sidebar.expander("Robustness"):
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
     corruption_percentages = st.multiselect("Corruption percentages", list(range(0, 101, 10)),
-                                                    format_func=lambda i: f"{i}%",
-                                                    key="corruption-percentages")
+                                            format_func=lambda i: f"{i}%",
+                                            key="corruption-percentages")
     # corruption_percentages = []
     # num = st.sidebar.number_input(
     #     "Corruption percentage", min_value=0.0, max_value=1.0, step=0.01, key=0)
@@ -103,7 +107,12 @@ with st.sidebar.expander("Robustness"):
     #                                   max_value=1.0, step=0.01, key=len(corruption_percentages))
 
     # also_corrupt_train: bool = False):
-    also_corrupt_train = st.checkbox("Also corrupt train", key="corruption-train")
+
+    if '_also_corrupt_train' not in st.session_state:
+        st.session_state['_also_corrupt_train'] = False
+    also_corrupt_train = st.checkbox("Also corrupt train", key="corruption-train",
+                                     value=st.session_state['_also_corrupt_train'])
+    st.session_state['_also_corrupt_train'] = also_corrupt_train
 
     # __init__
     if data_corruption_active:
@@ -115,12 +124,24 @@ with st.sidebar.expander("Robustness"):
         st.session_state.analyses.pop("robustness", None)
 
 with st.sidebar.expander("Operator Impact"):
-    operator_impact_active = st.checkbox("Enable analysis", key="operator-impact")
+    if '_operator_impact_active' not in st.session_state:
+        st.session_state['_operator_impact_active'] = False
+    operator_impact_active = st.checkbox("Enable analysis", key="operator-impact",
+                                         value=st.session_state['_operator_impact_active'])
+    st.session_state['_operator_impact_active'] = operator_impact_active
     # test_transformers=True
-    test_transformers = st.checkbox("Test transformers", value=True, key="operator-impact-transformers")
+    if '_test_transformers' not in st.session_state:
+        st.session_state['_test_transformers'] = True
+    test_transformers = st.checkbox("Test transformers", key="operator-impact-transformers",
+                                    value=st.session_state['_test_transformers'])
+    st.session_state['_test_transformers'] = test_transformers
 
     # test_selections=False
-    test_selections = st.checkbox("Test selections", key="operator-impact-selections")
+    if '_test_selections' not in st.session_state:
+        st.session_state['_test_selections'] = False
+    test_selections = st.checkbox("Test selections", key="operator-impact-selections",
+                                  value=st.session_state['_test_selections'])
+    st.session_state['_test_selections'] = test_selections
 
     # restrict_to_linenos: List[int] or None = None
     # line_numbers = []
@@ -140,7 +161,12 @@ with st.sidebar.expander("Operator Impact"):
 
 # columns_with_error: dict[str or None, ErrorType] or List[Tuple[str, ErrorType]]
 with st.sidebar.expander("Data Cleaning"):
-    data_cleaning_active = st.checkbox("Enable analysis", key="data_cleaning")
+    if '_data_cleaning_active' not in st.session_state:
+        st.session_state['_data_cleaning_active'] = False
+    data_cleaning_active = st.checkbox("Enable analysis", key="data_cleaning",
+                                       value=st.session_state['_data_cleaning_active'])
+    st.session_state['_data_cleaning_active'] = data_cleaning_active
+
     labels_ui_col = "LABELS"
     columns_with_error = {}
     selected_columns = st.multiselect("Columns with errors", pipeline_columns + [labels_ui_col],
