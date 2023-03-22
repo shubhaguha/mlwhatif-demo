@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import networkx
 import networkx as nx
+import numpy
 import pandas
 import streamlit as st
 import streamlit.components.v1 as components
@@ -33,6 +34,7 @@ def analyze_pipeline(dag_extraction_result, *_what_if_analyses, add_monkey_patch
     if add_monkey_patching:
         builder = builder.add_custom_monkey_patching_module(custom_monkeypatching)
 
+    numpy.random.seed(1337)  # For video recording, 5, 1337, 48, 51
     analysis_result = builder.execute()
 
     return analysis_result

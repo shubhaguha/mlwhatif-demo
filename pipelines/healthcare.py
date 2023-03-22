@@ -1,5 +1,6 @@
 import os
 import warnings
+import numpy
 import pandas as pd
 import fuzzy_pandas as fpd
 from fairlearn.metrics import MetricFrame, false_negative_rate, equalized_odds_difference
@@ -13,6 +14,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from example_pipelines.healthcare.healthcare_utils import MyW2VTransformer
 from utils import get_project_root
 warnings.filterwarnings('ignore')
+numpy.random.seed(13)
 
 COUNTIES_OF_INTEREST = ['county2', 'county3']
 
