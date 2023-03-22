@@ -64,9 +64,11 @@ st.sidebar.title("Configuration")
 if 'pipeline_file_name_index' not in st.session_state:
     st.session_state['pipeline_file_name_index'] = 0
 pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()), key="pipeline-selection",
-                                index=st.session_state['pipeline_file_name_index'],
-                                on_change=remove_column_specific_state)
-st.session_state['pipeline_file_name_index'] = list(PIPELINE_CONFIG.keys()).index(pipeline)
+                                index=st.session_state['pipeline_file_name_index'])
+new_pipeline_index = list(PIPELINE_CONFIG.keys()).index(pipeline)
+if new_pipeline_index != st.session_state['pipeline_file_name_index']:
+    remove_column_specific_state()
+st.session_state['pipeline_file_name_index'] = new_pipeline_index
 
 pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
 pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
