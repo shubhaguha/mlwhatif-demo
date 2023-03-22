@@ -15,6 +15,12 @@ from dag_visualisation import get_original_simple_dag, get_colored_simple_dags, 
     get_final_optimized_combined_colored_simple_dag
 
 
+def remove_column_specific_state():
+    for key in st.session_state:
+        if "column" in key:
+            st.session_state.pop(key)
+
+
 def analyze_pipeline(dag_extraction_result, *_what_if_analyses, add_monkey_patching=False):
     builder = PipelineAnalyzer.on_previously_extracted_pipeline(dag_extraction_result)
 
