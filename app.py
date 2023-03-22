@@ -9,7 +9,8 @@ from mlwhatif.analysis._operator_impact import OperatorImpact
 from streamlit_ace import st_ace
 
 from callbacks import analyze_pipeline, get_report, scan_pipeline, \
-    estimate_pipeline_analysis, render_dag_comparison, render_full_size_dag
+    estimate_pipeline_analysis, render_dag_comparison, render_full_size_dag, \
+    remove_column_specific_state
 from constants import PIPELINE_CONFIG
 
 if 'PIPELINE_SOURCE_CODE_PREV_RUN' not in st.session_state:
@@ -63,7 +64,8 @@ st.sidebar.title("Configuration")
 if 'pipeline_file_name_index' not in st.session_state:
     st.session_state['pipeline_file_name_index'] = 0
 pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()), key="pipeline-selection",
-                                index=st.session_state['pipeline_file_name_index'])
+                                index=st.session_state['pipeline_file_name_index'],
+                                on_change=remove_column_specific_state)
 st.session_state['pipeline_file_name_index'] = list(PIPELINE_CONFIG.keys()).index(pipeline)
 
 pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
@@ -97,7 +99,7 @@ with st.sidebar.expander("Robustness"):
             column, corruption_types, format_func=lambda m: m.value,
             key=f"corruption_type__{column}",
             index=(corruption_types.index(st.session_state[f"corruption_type__{column}"])
-                   if f"corruption_type__{column}" in st.session_state else 0))
+                   if f"corruption_type__column_{column}" in st.session_state else 0))
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
     corruption_percentages = st.multiselect("Corruption percentages", list(range(0, 101, 10)),
