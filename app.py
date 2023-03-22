@@ -313,6 +313,7 @@ with results_container:
                     header = "Operator Impact"
                 else:
                     header = "Data Cleaning"
+                    report.loc[report["error"] == "mislabel", "corrupted_column"] = "LABELS"
                 st.subheader(header)
                 st.dataframe(report)
     else:
