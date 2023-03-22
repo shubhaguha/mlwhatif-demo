@@ -85,12 +85,9 @@ with st.sidebar.expander("Robustness"):  # a.k.a. Data Corruption
                                          value=st.session_state.get("enable_corruptions", False))
 
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
-    if '_data_corruption_columns' not in st.session_state:
-        st.session_state['_data_corruption_columns'] = []
     column_to_corruption = {}
-    selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns",
-                                      default=st.session_state['_data_corruption_columns'])
-    st.session_state['_data_corruption_columns'] = selected_columns
+    selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption_columns",
+                                      default=st.session_state.get("corruption_columns", []))
     corruption_types = list(CorruptionType.__members__.values())
     for column in selected_columns:
         if f'_data_corruption_type_idx__{column}' not in st.session_state:
