@@ -92,7 +92,7 @@ with st.sidebar.expander("Robustness"):
         st.session_state['_data_corruption_columns'] = []
     column_to_corruption = {}
     selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns",
-                                      value=st.session_state['_data_corruption_columns'])
+                                      default=st.session_state['_data_corruption_columns'])
     st.session_state['_data_corruption_columns'] = selected_columns
     for column in selected_columns:
         if f'_data_corruption__{column}' not in st.session_state:
@@ -104,12 +104,11 @@ with st.sidebar.expander("Robustness"):
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
     if '_data_corruption_percentages' not in st.session_state:
-        st.session_state['_data_corruption_percentages'] = []
+        st.session_state['_data_corruption_percentages'] = [40, 70, 100]
     corruption_percentages = st.multiselect("Corruption percentages", list(range(0, 101, 10)),
-                                            default=[40, 70, 100],
+                                            default=st.session_state['_data_corruption_percentages'],
                                             format_func=lambda i: f"{i}%",
-                                            key="corruption-percentages",
-                                            value=st.session_state['_data_corruption_percentages'])
+                                            key="corruption-percentages")
     st.session_state['_data_corruption_percentages'] = corruption_percentages
     # corruption_percentages = []
     # num = st.sidebar.number_input(
@@ -187,7 +186,7 @@ with st.sidebar.expander("Data Cleaning"):
         st.session_state['_data_cleaning_columns'] = []
     selected_columns = st.multiselect("Columns with errors", pipeline_columns + [labels_ui_col],
                                       key="data_cleaning_columns",
-                                      value=st.session_state['_data_cleaning_columns'])
+                                      default=st.session_state['_data_cleaning_columns'])
     for column in selected_columns:
         if f'_data_cleaning__{column}' not in st.session_state:
             st.session_state[f'_data_cleaning__{column}'] = None
