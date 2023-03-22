@@ -101,13 +101,10 @@ with st.sidebar.expander("Robustness"):
         st.session_state[f'_data_corruption_type_idx__{column}'] = corruption_types.index(column_to_corruption[column])
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
-    if '_data_corruption_percentages' not in st.session_state:
-        st.session_state['_data_corruption_percentages'] = [40, 70, 100]
     corruption_percentages = st.multiselect("Corruption percentages", list(range(0, 101, 10)),
-                                            default=st.session_state['_data_corruption_percentages'],
+                                            default=st.session_state.get("corruption_percentages", [40, 70, 100]),
                                             format_func=lambda i: f"{i}%",
-                                            key="corruption-percentages")
-    st.session_state['_data_corruption_percentages'] = corruption_percentages
+                                            key="corruption_percentages")
     # corruption_percentages = []
     # num = st.sidebar.number_input(
     #     "Corruption percentage", min_value=0.0, max_value=1.0, step=0.01, key=0)
