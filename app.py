@@ -188,14 +188,15 @@ with st.sidebar.expander("Data Cleaning"):
     selected_columns = st.multiselect("Columns with errors", pipeline_columns + [labels_ui_col],
                                       key="data_cleaning_columns",
                                       default=st.session_state['_data_cleaning_columns'])
+    error_types = list(ErrorType.__members__.values())
     for column in selected_columns:
-        if f'_data_cleaning__{column}' not in st.session_state:
-            st.session_state[f'_data_cleaning__{column}'] = None
+        if f'_data_cleaning_error_type_idx__{column}' not in st.session_state:
+            st.session_state[f'_data_cleaning_error_type_idx__{column}'] = 0
         columns_with_error[column] = st.selectbox(
-            column, ErrorType.__members__.values(), format_func=lambda m: m.value,
+            column, error_types, format_func=lambda m: m.value,
             key=f"data_cleaning_columns_{column}",
-            value=st.session_state[f'_data_cleaning__{column}'])
-        st.session_state[f'_data_cleaning__{column}'] = columns_with_error[column]
+            index=st.session_state[f'_data_cleaning_error_type_idx__{column}'])
+        st.session_state[f'_data_cleaning_error_type_idx__{column}'] = error_types.index(columns_with_error[column])
 
     # __init__
     columns_with_error_with_label_formatting = {}
