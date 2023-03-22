@@ -97,6 +97,7 @@ with st.sidebar.expander("Robustness"):
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
     corruption_percentages = st.multiselect("Corruption percentages", list(range(0, 101, 10)),
+                                            default=[40, 70, 100],
                                             format_func=lambda i: f"{i}%",
                                             key="corruption-percentages")
     # corruption_percentages = []
