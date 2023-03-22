@@ -292,7 +292,11 @@ with results_container:
                         def format_percentage_column(row):
                             number = row[column]
                             if type(number) == float and not pandas.isna(number):
+                                if "percentage" in column:
+                                    number = number * 100
                                 result = str(int(number))
+                                if "percentage" in column:
+                                    result += "%"
                             elif type(number) == str:
                                 result = number
                             else:
