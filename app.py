@@ -93,12 +93,11 @@ with st.sidebar.expander("Robustness"):
                                       default=st.session_state.get("corruption_columns", []))
     corruption_types = list(CorruptionType.__members__.values())
     for column in selected_columns:
-        if f'_data_corruption_type_idx__{column}' not in st.session_state:
-            st.session_state[f'_data_corruption_type_idx__{column}'] = 0
         column_to_corruption[column] = st.selectbox(
             column, corruption_types, format_func=lambda m: m.value,
-            key=f"corruption-columns-{column}", index=st.session_state[f'_data_corruption_type_idx__{column}'])
-        st.session_state[f'_data_corruption_type_idx__{column}'] = corruption_types.index(column_to_corruption[column])
+            key=f"corruption_type__{column}",
+            index=(corruption_types.index(st.session_state[f"corruption_type__{column}"])
+                   if f"corruption_type__{column}" in st.session_state else 0))
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
     corruption_percentages = st.multiselect("Corruption percentages", list(range(0, 101, 10)),
