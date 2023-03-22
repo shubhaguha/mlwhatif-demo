@@ -246,7 +246,7 @@ def render_dag_slot(name, dag, key, height='300px', description=True):
         selected = render_cytoscape(dag, key, height)
     if description is True:
         description_text = dag_slot_descriptions[name]
-        st.markdown(f"<div style='height: 100px; overflow-y: scroll;'>{description_text}</div>",
+        st.markdown(f"<div style='height: 125px; overflow-y: scroll;'>{description_text}</div>",
                     unsafe_allow_html=True)
     return selected
 
