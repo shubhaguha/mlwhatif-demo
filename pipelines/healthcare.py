@@ -23,12 +23,20 @@ histories = pd.read_csv(os.path.join(str(get_project_root()), "pipelines", "data
 
 data = fpd.fuzzy_merge(patients, histories, on='full_name', method='levenshtein',
                        keep_right=['smoker', 'complications'], threshold=0.95)
-complications = data.groupby('age_group') \
-    .agg(mean_complications=('complications', 'mean'))
-data = data.merge(complications, on=['age_group'])
-data['label'] = data['complications'] > 1.2 * data['mean_complications']
-data = data[['smoker', 'last_name', 'county', 'num_children', 'race', 'income', 'label']]
 data = data[data['county'].isin(COUNTIES_OF_INTEREST)]
+
+train_data, test_data = train_test_split(data)
+
+complications = train_data.groupby('age_group') \
+    .agg(mean_complications=('complications', 'mean'))
+train_data = train_data.merge(complications, on=['age_group'])
+test_data = test_data.merge(complications, on=['age_group'])
+
+train_data['label'] = train_data['complications'] > 1.2 * train_data['mean_complications']
+test_data['label'] = test_data['complications'] > 1.2 * test_data['mean_complications']
+
+train_data = train_data[['smoker', 'last_name', 'county', 'num_children', 'race', 'income', 'label']]
+test_data = test_data[['smoker', 'last_name', 'county', 'num_children', 'race', 'income', 'label']]
 
 impute_and_one_hot_encode = Pipeline([
     ('impute', SimpleImputer(strategy='most_frequent')),
@@ -43,7 +51,6 @@ pipeline = Pipeline([
     ('features', featurisation),
     ('learner', LogisticRegression())])
 
-train_data, test_data = train_test_split(data)
 model = pipeline.fit(train_data, train_data['label'])
 test_predictions = model.predict(test_data)
 print("Mean accuracy: {}".format(accuracy_score(test_data['label'], test_predictions)))

@@ -356,7 +356,7 @@ def render_dag_comparison(before, after):
     if f"{after}-page_number" not in st.session_state or st.session_state[f"{after}-page_number"] >= len(patches):
         st.session_state[f"{after}-page_number"] = 0
     last_page = len(patches) // elements_per_page
-    prev, _, next = st.columns([1, 10, 1])
+    prev, info, next = st.columns([1, 10, 1])
     if next.button("Next"):
         if st.session_state[f"{after}-page_number"] + 1 > last_page:
             st.session_state[f"{after}-page_number"] = 0
@@ -370,6 +370,13 @@ def render_dag_comparison(before, after):
     # Get start and end indices of the next page of the dataframe
     start_idx = st.session_state[f"{after}-page_number"] * elements_per_page
     end_idx = (1 + st.session_state[f"{after}-page_number"]) * elements_per_page
+    with info:
+        markdown_text = f"""
+        <div style='text-align: center;'>
+        <p>{len(patches)} Variants total, showing {start_idx}-{min(end_idx-1, len(patches)-1)}</p>
+        </div>
+        """
+        st.markdown(markdown_text, unsafe_allow_html=True)
 
     for variant_left, variant_right in zip(range(start_idx, end_idx, 2), range(start_idx + 1, end_idx, 2)):
         left, right = st.columns(2)
