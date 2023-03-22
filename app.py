@@ -94,13 +94,14 @@ with st.sidebar.expander("Robustness"):
     selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns",
                                       default=st.session_state['_data_corruption_columns'])
     st.session_state['_data_corruption_columns'] = selected_columns
+    corruption_types = list(CorruptionType.__members__.values())
     for column in selected_columns:
-        if f'_data_corruption__{column}' not in st.session_state:
-            st.session_state[f'_data_corruption__{column}'] = None
+        if f'_data_corruption_type_idx__{column}' not in st.session_state:
+            st.session_state[f'_data_corruption_type_idx__{column}'] = 0
         column_to_corruption[column] = st.selectbox(
-            column, CorruptionType.__members__.values(), format_func=lambda m: m.value,
-            key=f"corruption-columns-{column}", value=st.session_state[f'_data_corruption__{column}'])
-        st.session_state[f'_data_corruption__{column}'] = column_to_corruption[column]
+            column, corruption_types, format_func=lambda m: m.value,
+            key=f"corruption-columns-{column}", index=st.session_state[f'_data_corruption_type_idx__{column}'])
+        st.session_state[f'_data_corruption_type_idx__{column}'] = corruption_types.index(column_to_corruption[column])
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
     if '_data_corruption_percentages' not in st.session_state:
