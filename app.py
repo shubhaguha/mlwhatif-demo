@@ -188,6 +188,7 @@ with st.sidebar.expander("Data Cleaning"):
     selected_columns = st.multiselect("Columns with errors", pipeline_columns + [labels_ui_col],
                                       key="data_cleaning_columns",
                                       default=st.session_state['_data_cleaning_columns'])
+    st.session_state['_data_cleaning_columns'] = selected_columns
     error_types = list(ErrorType.__members__.values())
     for column in selected_columns:
         if f'_data_cleaning_error_type_idx__{column}' not in st.session_state:
