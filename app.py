@@ -88,8 +88,12 @@ with st.sidebar.expander("Robustness"):
     st.session_state['_data_corruption_active'] = data_corruption_active
 
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
+    if '_data_corruption_columns' not in st.session_state:
+        st.session_state['_data_corruption_columns'] = []
     column_to_corruption = {}
-    selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns")
+    selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns",
+                                      value=st.session_state['_data_corruption_columns'])
+    st.session_state['_data_corruption_columns'] = selected_columns
     for column in selected_columns:
         column_to_corruption[column] = st.selectbox(
             column, CorruptionType.__members__.values(), format_func=lambda m: m.value,
