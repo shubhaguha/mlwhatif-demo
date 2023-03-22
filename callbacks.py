@@ -8,10 +8,11 @@ from example_pipelines.healthcare import custom_monkeypatching
 from mlwhatif import PipelineAnalyzer
 from mlwhatif.execution._patches import AppendNodeAfterOperator, DataProjection, OperatorReplacement, DataTransformer, \
     DataFiltering, ModelPatch
-from mlwhatif.visualisation._visualisation import get_original_simple_dag, get_colored_simple_dags, \
-    get_final_optimized_combined_colored_simple_dag
 from pyvis.network import Network
 from st_cytoscape import cytoscape
+
+from dag_visualisation import get_original_simple_dag, get_colored_simple_dags, \
+    get_final_optimized_combined_colored_simple_dag
 
 
 def analyze_pipeline(dag_extraction_result, *_what_if_analyses, add_monkey_patching=False):
@@ -107,22 +108,27 @@ def render_graph3(graph: nx.classes.digraph.DiGraph):
             'css': {
                 'content': 'data(operator_name)',
                 'text-valign': 'center',
-                'text-outline-width': '1',
+                'color': 'data(fontcolor)',
+                'text-outline-width': '3',
+                'text-outline-color': 'data(text_outline_color)',
                 'background-color': 'data(fillcolor)',
-                'border-color': 'black',
+                'border-color': 'data(border_color)',
                 'border-width': '2px',
+                'font-weight': '900'
             }
         },
         {
             'selector': ':selected',
             'css': {
-                'background-color': 'black',
-                'line-color': 'black',
-                'target-arrow-color': 'black',
-                'source-arrow-color': 'black',
+                'content': 'data(operator_name)',
+                'text-valign': 'center',
+                'color': 'orange',
+                'text-outline-width': '3',
                 'text-outline-color': 'black',
+                'background-color': 'orange',
                 'border-color': 'black',
-                'border-width': '2px',
+                'border-width': '3px',
+                'font-weight': '900'
             }
         },
         {

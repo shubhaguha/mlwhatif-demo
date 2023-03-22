@@ -3,5 +3,5 @@ gensim==3.8.3
 pyvis==0.3.1
 streamlit
 streamlit-ace
-mlwhatif[dev] @ git+https://github.com/stefan-grafberger/mlwhatif.git@e5a9a5e68d85c91c445137cd83044bc8cbe07578
-st-cytoscape @ git+https://github.com/stefan-grafberger/st-cytoscape.git@ff5b2dd5fb5941d6a939420f5d4f65955f7b998a
+mlwhatif[dev] @ git+https://github.com/stefan-grafberger/mlwhatif.git@81aec51d28778484e1e8fbbed9267440bda0c9c4
+st-cytoscape @ git+https://github.com/stefan-grafberger/st-cytoscape.git@e085d946d8560acba99277d10db230eade7e1099
