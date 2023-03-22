@@ -181,13 +181,11 @@ with st.sidebar.expander("Data Cleaning"):
                                       default=st.session_state.get('data_cleaning_columns', []))
     error_types = list(ErrorType.__members__.values())
     for column in selected_columns:
-        if f'_data_cleaning_error_type_idx__{column}' not in st.session_state:
-            st.session_state[f'_data_cleaning_error_type_idx__{column}'] = 0
         columns_with_error[column] = st.selectbox(
             column, error_types, format_func=lambda m: m.value,
-            key=f"data_cleaning_columns_{column}",
-            index=st.session_state[f'_data_cleaning_error_type_idx__{column}'])
-        st.session_state[f'_data_cleaning_error_type_idx__{column}'] = error_types.index(columns_with_error[column])
+            key=f"error_type__column_{column}",
+            index=(error_types.index(st.session_state[f"error_type__column_{column}"])
+                   if f"error_type__column_{column}" in st.session_state else 0))
 
     # __init__
     columns_with_error_with_label_formatting = {}
