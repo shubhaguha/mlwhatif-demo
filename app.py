@@ -61,11 +61,12 @@ st.title("`mlwhatif` demo")
 st.sidebar.title("Configuration")
 
 # Pipeline
-pipeline_choices = list(PIPELINE_CONFIG.keys())
-pipeline = st.sidebar.selectbox("Choose a pipeline", pipeline_choices, key="selected_pipeline",
-                                index=(pipeline_choices.index(st.session_state["selected_pipeline"])
-                                       if "selected_pipeline" in st.session_state else 0),
+if 'pipeline_file_name_index' not in st.session_state:
+    st.session_state['pipeline_file_name_index'] = 0
+pipeline = st.sidebar.selectbox("Choose a pipeline", list(PIPELINE_CONFIG.keys()), key="pipeline-selection",
+                                index=st.session_state['pipeline_file_name_index'],
                                 on_change=remove_column_specific_state)
+st.session_state['pipeline_file_name_index'] = list(PIPELINE_CONFIG.keys()).index(pipeline)
 
 pipeline_filename = PIPELINE_CONFIG[pipeline]["filename"]
 pipeline_columns = PIPELINE_CONFIG[pipeline]["columns"]
