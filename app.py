@@ -80,12 +80,9 @@ code_has_changed = st.session_state.PIPELINE_SOURCE_CODE != st.session_state.PIP
 scan_button = st.sidebar.button("Run and Scan Pipeline", disabled=not code_has_changed, key="scan-button")
 
 # What-if Analyses
-with st.sidebar.expander("Robustness"):
-    if '_data_corruption_active' not in st.session_state:
-        st.session_state['_data_corruption_active'] = False
-    data_corruption_active = st.checkbox("Enable analysis", key="enable-corrutions",
-                                         value=st.session_state['_data_corruption_active'])  # a.k.a. robustness
-    st.session_state['_data_corruption_active'] = data_corruption_active
+with st.sidebar.expander("Robustness"):  # a.k.a. Data Corruption
+    data_corruption_active = st.checkbox("Enable analysis", key="enable_corruptions",
+                                         value=st.session_state.get("enable_corruptions", False))
 
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
     if '_data_corruption_columns' not in st.session_state:
