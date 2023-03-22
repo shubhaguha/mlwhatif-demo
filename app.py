@@ -142,6 +142,7 @@ with st.sidebar.expander("Operator Impact"):
     operator_impact_active = st.checkbox("Enable analysis", key="operator-impact",
                                          value=st.session_state['_operator_impact_active'])
     st.session_state['_operator_impact_active'] = operator_impact_active
+
     # test_transformers=True
     if '_test_transformers' not in st.session_state:
         st.session_state['_test_transformers'] = True
@@ -182,12 +183,19 @@ with st.sidebar.expander("Data Cleaning"):
 
     labels_ui_col = "LABELS"
     columns_with_error = {}
+    if '_data_cleaning_columns' not in st.session_state:
+        st.session_state['_data_cleaning_columns'] = []
     selected_columns = st.multiselect("Columns with errors", pipeline_columns + [labels_ui_col],
-                                      key="data_cleaning_columns")
+                                      key="data_cleaning_columns",
+                                      value=st.session_state['_data_cleaning_columns'])
     for column in selected_columns:
+        if f'_data_cleaning__{column}' not in st.session_state:
+            st.session_state[f'_data_cleaning__{column}'] = None
         columns_with_error[column] = st.selectbox(
             column, ErrorType.__members__.values(), format_func=lambda m: m.value,
-            key=f"data_cleaning_columns_{column}")
+            key=f"data_cleaning_columns_{column}",
+            value=st.session_state[f'_data_cleaning__{column}'])
+        st.session_state[f'_data_cleaning__{column}'] = columns_with_error[column]
 
     # __init__
     columns_with_error_with_label_formatting = {}
