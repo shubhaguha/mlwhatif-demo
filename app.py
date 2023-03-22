@@ -237,6 +237,10 @@ if run_button:
         st.session_state.ANALYSIS_RESULT = analysis_result
         st.balloons()
 
+with st.sidebar:
+    st.markdown("")
+    st.markdown("")
+
 ### === MAIN CONTENT ===
 with pipeline_code_container:
     # st.code(pipeline_code)

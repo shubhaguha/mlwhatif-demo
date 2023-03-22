@@ -246,7 +246,8 @@ def render_dag_slot(name, dag, key, height='300px', description=True):
         selected = render_cytoscape(dag, key, height)
     if description is True:
         description_text = dag_slot_descriptions[name]
-        st.markdown(description_text)
+        st.markdown(f"<div style='height: 100px; overflow-y: scroll;'>{description_text}</div>",
+                    unsafe_allow_html=True)
     return selected
 
 
@@ -259,12 +260,12 @@ def render_full_size_dag(stage_name):
         selected = render_dag_slot(stage_name, visualization_dag, f"full-size-{stage_name}", height='600px',
                                    description=False)
         if len(selected['nodes']) != 0:
-            render_dag_node_details(internal_dag, selected, width=1500)
+            render_dag_node_details(internal_dag, selected, width=1000, table_instead_of_df=True)
         else:
             st.markdown("Select a DAG Node for details")
 
 
-def render_dag_node_details(internal_dag, selected, width=300):
+def render_dag_node_details(internal_dag, selected, width=300, table_instead_of_df=False):
     with st.container():
         selected_id = int(selected['nodes'][0])
         selected_node = [dag_node for dag_node in list(internal_dag.nodes())
@@ -303,7 +304,31 @@ def render_dag_node_details(internal_dag, selected, width=300):
                             end_col_offset,
                             ]
         info_df = pandas.DataFrame({'Attribute': attribute_names, 'Value': attribute_values})
-        st.dataframe(info_df, width=width)
+        # streamlit dataframe is broken: https://discuss.streamlit.io/t/adjust-dataframe-column-width/5874
+        # table_data = create_plotly_table_figure_for_df(info_df)
+        # requires plotly
+        # st.plotly_chart(table_data, use_container_width=True)
+        # _, table_column, _ = st.columns(3)
+        # with table_column:
+        if table_instead_of_df is True:
+            st.table(info_df)
+        else:
+            st.dataframe(info_df)
+
+
+# def create_plotly_table_figure_for_df(info_df):
+#     table_data = plotly.graph_objs.Figure(data=[plotly.graph_objs.Table(
+#         header=dict(
+#             values=list(info_df.columns),
+#             font=dict(size=15),
+#             align="left",
+#         ),
+#         cells=dict(
+#             values=[info_df[column].tolist() for column in info_df.columns],
+#             align="left"),
+#
+#     )])
+#     return table_data
 
 
 def render_dag_comparison(before, after):
@@ -370,7 +395,8 @@ def render_variant_slot(before, after, dags_before, dags_after, internal_dags_be
         with left:
             with st.container():
                 st.write("#### before")
-                selected_before = render_dag_slot(before, dags_before[variant_index], f"before-{before}-{variant_index}")
+                selected_before = render_dag_slot(before, dags_before[variant_index],
+                                                  f"before-{before}-{variant_index}")
                 if len(selected_before['nodes']) != 0:
                     render_dag_node_details(internal_dags_before[variant_index], selected_before)
 
