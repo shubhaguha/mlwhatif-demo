@@ -88,18 +88,29 @@ with st.sidebar.expander("Robustness"):
     st.session_state['_data_corruption_active'] = data_corruption_active
 
     # column_to_corruption: List[Tuple[str, Union[FunctionType, CorruptionType]]],
+    if '_data_corruption_columns' not in st.session_state:
+        st.session_state['_data_corruption_columns'] = []
     column_to_corruption = {}
-    selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns")
+    selected_columns = st.multiselect("Columns to corrupt", pipeline_columns, key="corruption-columns",
+                                      default=st.session_state['_data_corruption_columns'])
+    st.session_state['_data_corruption_columns'] = selected_columns
+    corruption_types = list(CorruptionType.__members__.values())
     for column in selected_columns:
+        if f'_data_corruption_type_idx__{column}' not in st.session_state:
+            st.session_state[f'_data_corruption_type_idx__{column}'] = 0
         column_to_corruption[column] = st.selectbox(
-            column, CorruptionType.__members__.values(), format_func=lambda m: m.value,
-            key=f"corruption-columns-{column}")
+            column, corruption_types, format_func=lambda m: m.value,
+            key=f"corruption-columns-{column}", index=st.session_state[f'_data_corruption_type_idx__{column}'])
+        st.session_state[f'_data_corruption_type_idx__{column}'] = corruption_types.index(column_to_corruption[column])
 
     # corruption_percentages: Iterable[Union[float, Callable]] or None = None,
+    if '_data_corruption_percentages' not in st.session_state:
+        st.session_state['_data_corruption_percentages'] = [40, 70, 100]
     corruption_percentages = st.multiselect("Corruption percentages", list(range(0, 101, 10)),
-                                            default=[40, 70, 100],
+                                            default=st.session_state['_data_corruption_percentages'],
                                             format_func=lambda i: f"{i}%",
                                             key="corruption-percentages")
+    st.session_state['_data_corruption_percentages'] = corruption_percentages
     # corruption_percentages = []
     # num = st.sidebar.number_input(
     #     "Corruption percentage", min_value=0.0, max_value=1.0, step=0.01, key=0)
@@ -131,6 +142,7 @@ with st.sidebar.expander("Operator Impact"):
     operator_impact_active = st.checkbox("Enable analysis", key="operator-impact",
                                          value=st.session_state['_operator_impact_active'])
     st.session_state['_operator_impact_active'] = operator_impact_active
+
     # test_transformers=True
     if '_test_transformers' not in st.session_state:
         st.session_state['_test_transformers'] = True
@@ -171,12 +183,21 @@ with st.sidebar.expander("Data Cleaning"):
 
     labels_ui_col = "LABELS"
     columns_with_error = {}
+    if '_data_cleaning_columns' not in st.session_state:
+        st.session_state['_data_cleaning_columns'] = []
     selected_columns = st.multiselect("Columns with errors", pipeline_columns + [labels_ui_col],
-                                      key="data_cleaning_columns")
+                                      key="data_cleaning_columns",
+                                      default=st.session_state['_data_cleaning_columns'])
+    st.session_state['_data_cleaning_columns'] = selected_columns
+    error_types = list(ErrorType.__members__.values())
     for column in selected_columns:
+        if f'_data_cleaning_error_type_idx__{column}' not in st.session_state:
+            st.session_state[f'_data_cleaning_error_type_idx__{column}'] = 0
         columns_with_error[column] = st.selectbox(
-            column, ErrorType.__members__.values(), format_func=lambda m: m.value,
-            key=f"data_cleaning_columns_{column}")
+            column, error_types, format_func=lambda m: m.value,
+            key=f"data_cleaning_columns_{column}",
+            index=st.session_state[f'_data_cleaning_error_type_idx__{column}'])
+        st.session_state[f'_data_cleaning_error_type_idx__{column}'] = error_types.index(columns_with_error[column])
 
     # __init__
     columns_with_error_with_label_formatting = {}
