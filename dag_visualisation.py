@@ -45,7 +45,7 @@ def get_colored_simple_dags(dags: List[networkx.DiGraph], with_reuse_coloring=Tr
 
     random.seed(42)
     # TODO: Pick enough suitable colors
-    colors = random.choices(['#C06C84', '#355C7D', '#F67280', '#F9A2AB'], k=len(dags))
+    colors = random.choices(['#7d354c', '#C06C84', '#355C7D', '#F67280', '#F9A2AB', '#f67d72'], k=len(dags))
     white = '#FFFFFF'
     black = '#000000'
 

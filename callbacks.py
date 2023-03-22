@@ -265,7 +265,8 @@ def render_dag_slot(name, dag, key, height='300px', description=True):
 
 def render_full_size_dag(stage_name):
     st.markdown(main_description[stage_name])
-    if st.session_state.DAG_EXTRACTION_RESULT:
+    if (st.session_state.DAG_EXTRACTION_RESULT and stage_name == "Original") or (
+            st.session_state.ANALYSIS_RESULT and stage_name == "Done"):
         visualization_dag, internal_dag = get_dags(stage_name)
         visualization_dag = visualization_dag[0]
         internal_dag = internal_dag[0]
@@ -345,66 +346,67 @@ def render_dag_node_details(internal_dag, selected, width=300, table_instead_of_
 
 def render_dag_comparison(before, after):
     st.markdown(main_description[after])
-    dags_before, internal_dags_before = get_dags(before)
-    dags_after, internal_dags_after = get_dags(after)
-    if len(dags_before) == 1:
-        dags_before = [orig_dag for orig_dag in dags_before for _ in range(len(dags_after))]
-        internal_dags_before = [orig_dag for orig_dag in internal_dags_before for _ in range(len(dags_after))]
-    if len(dags_after) == 1:
-        dags_after = [merged_dag for merged_dag in dags_after for _ in range(len(dags_before))]
-        internal_dags_after = [merged_dag for merged_dag in internal_dags_after for _ in range(len(dags_before))]
+    if st.session_state.ANALYSIS_RESULT:
+        dags_before, internal_dags_before = get_dags(before)
+        dags_after, internal_dags_after = get_dags(after)
+        if len(dags_before) == 1:
+            dags_before = [orig_dag for orig_dag in dags_before for _ in range(len(dags_after))]
+            internal_dags_before = [orig_dag for orig_dag in internal_dags_before for _ in range(len(dags_after))]
+        if len(dags_after) == 1:
+            dags_after = [merged_dag for merged_dag in dags_after for _ in range(len(dags_before))]
+            internal_dags_after = [merged_dag for merged_dag in internal_dags_after for _ in range(len(dags_before))]
 
-    # TODO: It seems like patches and what-if dags might not be in the same order, investigate tomorrow
-    patches = st.session_state.ANALYSIS_RESULT.what_if_patches
+        # TODO: It seems like patches and what-if dags might not be in the same order, investigate tomorrow
+        patches = st.session_state.ANALYSIS_RESULT.what_if_patches
 
-    # Pagination
-    elements_per_page = 4
-    if f"{after}-page_number" not in st.session_state or st.session_state[f"{after}-page_number"] >= len(patches):
-        st.session_state[f"{after}-page_number"] = 0
-    last_page = len(patches) // elements_per_page
-    prev, info, next = st.columns([1, 10, 1])
-    if next.button("Next"):
-        if st.session_state[f"{after}-page_number"] + 1 > last_page:
+        # Pagination
+        elements_per_page = 4
+        if f"{after}-page_number" not in st.session_state or st.session_state[f"{after}-page_number"] >= len(patches):
             st.session_state[f"{after}-page_number"] = 0
-        else:
-            st.session_state[f"{after}-page_number"] += 1
-    if prev.button("Previous"):
-        if st.session_state[f"{after}-page_number"] - 1 < 0:
-            st.session_state[f"{after}-page_number"] = last_page
-        else:
-            st.session_state[f"{after}-page_number"] -= 1
-    # Get start and end indices of the next page of the dataframe
-    start_idx = st.session_state[f"{after}-page_number"] * elements_per_page
-    end_idx = (1 + st.session_state[f"{after}-page_number"]) * elements_per_page
-    with info:
-        markdown_text = f"""
-        <div style='text-align: center;'>
-        <p>{len(patches)} Variants total, showing {start_idx}-{min(end_idx-1, len(patches)-1)}</p>
-        </div>
-        """
-        st.markdown(markdown_text, unsafe_allow_html=True)
+        last_page = len(patches) // elements_per_page
+        prev, info, next = st.columns([1, 10, 1])
+        if next.button("Next"):
+            if st.session_state[f"{after}-page_number"] + 1 > last_page:
+                st.session_state[f"{after}-page_number"] = 0
+            else:
+                st.session_state[f"{after}-page_number"] += 1
+        if prev.button("Previous"):
+            if st.session_state[f"{after}-page_number"] - 1 < 0:
+                st.session_state[f"{after}-page_number"] = last_page
+            else:
+                st.session_state[f"{after}-page_number"] -= 1
+        # Get start and end indices of the next page of the dataframe
+        start_idx = st.session_state[f"{after}-page_number"] * elements_per_page
+        end_idx = (1 + st.session_state[f"{after}-page_number"]) * elements_per_page
+        with info:
+            markdown_text = f"""
+            <div style='text-align: center;'>
+            <p>{len(patches)} Variants total, showing {start_idx}-{min(end_idx - 1, len(patches) - 1)}</p>
+            </div>
+            """
+            st.markdown(markdown_text, unsafe_allow_html=True)
 
-    for variant_left, variant_right in zip(range(start_idx, end_idx, 2), range(start_idx + 1, end_idx, 2)):
-        left, right = st.columns(2)
-        if variant_left < len(patches):
-            with left:
-                st.markdown(f"### Variant {variant_left}")
-                render_patches(patches[variant_left])
-        if variant_right < len(patches):
-            with right:
-                st.markdown(f"### Variant {variant_right}")
-                render_patches(patches[variant_right])
-        columns = st.columns(4)
-        if variant_left < len(patches):
-            with st.container():
-                render_variant_slot(before, after, dags_before, dags_after, internal_dags_before, internal_dags_after,
-                                    variant_left, columns[0:2])
-        if variant_right < len(patches):
-            with st.container():
-                render_variant_slot(before, after, dags_before, dags_after, internal_dags_before, internal_dags_after,
-                                    variant_right, columns[2:4])
-        if variant_left < len(patches):
-            st.markdown("""---""")
+        for variant_left, variant_right in zip(range(start_idx, end_idx, 2), range(start_idx + 1, end_idx, 2)):
+            left, right = st.columns(2)
+            if variant_left < len(patches):
+                with left:
+                    st.markdown(f"### Variant {variant_left}")
+                    render_patches(patches[variant_left])
+            if variant_right < len(patches):
+                with right:
+                    st.markdown(f"### Variant {variant_right}")
+                    render_patches(patches[variant_right])
+            columns = st.columns(4)
+            if variant_left < len(patches):
+                with st.container():
+                    render_variant_slot(before, after, dags_before, dags_after, internal_dags_before, internal_dags_after,
+                                        variant_left, columns[0:2])
+            if variant_right < len(patches):
+                with st.container():
+                    render_variant_slot(before, after, dags_before, dags_after, internal_dags_before, internal_dags_after,
+                                        variant_right, columns[2:4])
+            if variant_left < len(patches):
+                st.markdown("""---""")
 
 
 def render_variant_slot(before, after, dags_before, dags_after, internal_dags_before, internal_dags_after,
