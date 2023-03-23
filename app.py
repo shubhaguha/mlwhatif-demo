@@ -306,6 +306,8 @@ with results_container:
                             return ", ".join(results)
                         report[column] = report.apply(format_metric_frame, axis=1)
                 for column in list(report.columns):
+                    if pandas.isna(report[column][0]):
+                        report.loc[0, column] = "(original pipeline)"
                     if "percentage" in column or "lineno" in column:
                         def format_percentage_column(row):
                             number = row[column]
