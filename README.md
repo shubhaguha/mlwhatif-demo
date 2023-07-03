@@ -1,6 +1,8 @@
 `mlwhatif` demo
 ===
 
+[![DOI](https://zenodo.org/badge/610833072.svg)](https://zenodo.org/badge/latestdoi/610833072)
+
 This web app was created to demonstrate the functionality of `mlwhatif`: <https://github.com/stefan-grafberger/mlwhatif>
 
 `mlwhatif` is a tool for Data-Centric What-If Analysis for Native Machine Learning Pipelines. It uses the [`mlinspect`](https://github.com/stefan-grafberger/mlinspect) project as a foundation, mainly for its plan extraction from native ML pipelines.
